@@ -1,37 +1,33 @@
 {
   "schemaVersion": 1,
-  "id": "modid",
+  "id": "project_stargate",
   "version": "${version}",
 
-  "name": "Example Mod",
+  "name": "Project StarGate",
   "description": "This is an example description! Tell everyone what your mod is about!",
   "authors": [
-    "Me!"
+    "TheGrimsey"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "https://github.com/TheGrimsey/ProjectStarGate",
+    "sources": "https://github.com/TheGrimsey/ProjectStarGate"
   },
 
-  "license": "CC0-1.0",
+  "license": "MIT",
   "icon": "assets/modid/icon.png",
 
   "environment": "*",
   "entrypoints": {
     "main": [
-      "net.fabricmc.example.ExampleMod"
+      "net.thegrimsey.projectstargate.ProjectStarGate"
     ]
   },
   "mixins": [
-    "modid.mixins.json"
   ],
 
   "depends": {
     "fabricloader": ">=0.7.4",
     "fabric": "*",
-    "minecraft": "1.16.x"
-  },
-  "suggests": {
-    "another-mod": "*"
+    "minecraft": ">=1.16.2"
   }
 }
