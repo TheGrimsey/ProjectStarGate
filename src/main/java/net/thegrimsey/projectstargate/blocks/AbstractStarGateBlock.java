@@ -36,19 +36,14 @@ public abstract class AbstractStarGateBlock extends Block{
         checkMerge(world, pos);
     }
 
-    /*static int[] pattern = {
+    static int[] pattern = {
             2, 1, 3, 1, 2,
             1, 0, 0, 0, 1,
             2, 0, 0, 0, 2,
             1, 0, 0, 0, 1,
             2, 1, 2, 1, 2
     };
-    static Block[] blockList = {
-            Blocks.AIR,
-            ProjectSGBlocks.SG_RING_BLOCK,
-            ProjectSGBlocks.SG_CHEVRON_BLOCK,
-            ProjectSGBlocks.SG_BASE_BLOCK
-    };*/
+    static Block[] blockList = null;
 
     void checkMerge(World world, BlockPos pos)
     {
@@ -59,7 +54,16 @@ public abstract class AbstractStarGateBlock extends Block{
         // R A A A R
         // C R B R C
 
-        BlockPos bottomPoint = new BlockPos(pos.getX()-2, pos.getY(), pos.getZ());
+        if(blockList == null)
+        {
+            blockList = new Block[]{
+                    Blocks.AIR,
+                    ProjectSGBlocks.SG_RING_BLOCK,
+                    ProjectSGBlocks.SG_CHEVRON_BLOCK,
+                    ProjectSGBlocks.SG_BASE_BLOCK
+            };
+        }
+        BlockPos bottomPoint = new BlockPos(pos.getX()-2, pos.getY(), pos.getZ()); // TODO Figure out bottomPoint from any block in the structure.
 
         boolean merged = true;
         for(int x = 0; x < 5; x++)
@@ -76,6 +80,23 @@ public abstract class AbstractStarGateBlock extends Block{
                     merged = false;
                     break;
                 }
+            }
+        }
+
+        if(!merged)
+            return;
+
+        System.out.println("STRUCTURE DETECTED");
+
+        for(int x = 0; x < 5; x++)
+        {
+            for(int y = 0; y < 5; y++)
+            {
+                BlockPos targetPos = new BlockPos(bottomPoint.getX()+x, bottomPoint.getY()+y, bottomPoint.getZ());
+                BlockState state = world.getBlockState(targetPos);
+
+                if(state.getBlock() instanceof  AbstractStarGateBlock)
+                    world.setBlockState(targetPos, state.with(MERGED, true));
             }
         }
     }
