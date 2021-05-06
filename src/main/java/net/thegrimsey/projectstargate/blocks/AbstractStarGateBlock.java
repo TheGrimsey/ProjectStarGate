@@ -3,10 +3,12 @@ package net.thegrimsey.projectstargate.blocks;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.thegrimsey.projectstargate.ProjectSGBlocks;
 
 public abstract class AbstractStarGateBlock extends Block{
     public static final BooleanProperty MERGED = BooleanProperty.of("merged");
@@ -34,6 +36,20 @@ public abstract class AbstractStarGateBlock extends Block{
         checkMerge(world, pos);
     }
 
+    /*static int[] pattern = {
+            2, 1, 3, 1, 2,
+            1, 0, 0, 0, 1,
+            2, 0, 0, 0, 2,
+            1, 0, 0, 0, 1,
+            2, 1, 2, 1, 2
+    };
+    static Block[] blockList = {
+            Blocks.AIR,
+            ProjectSGBlocks.SG_RING_BLOCK,
+            ProjectSGBlocks.SG_CHEVRON_BLOCK,
+            ProjectSGBlocks.SG_BASE_BLOCK
+    };*/
+
     void checkMerge(World world, BlockPos pos)
     {
         // Check for complete circle.
@@ -43,12 +59,23 @@ public abstract class AbstractStarGateBlock extends Block{
         // R A A A R
         // C R B R C
 
-        for(int x = -2; x < 2; x++)
+        BlockPos bottomPoint = new BlockPos(pos.getX()-2, pos.getY(), pos.getZ());
+
+        boolean merged = true;
+        for(int x = 0; x < 5; x++)
         {
             for(int y = 0; y < 5; y++)
             {
-                BlockState state = world.getBlockState(new BlockPos(pos.getX()+x, pos.getY()+y, pos.getZ()));
-                System.out.println("Block: " + state.getBlock().getTranslationKey());
+                int arrayIndex = y * 5 + x;
+                Block expectedBlock = blockList[pattern[arrayIndex]];
+
+                BlockState state = world.getBlockState(new BlockPos(bottomPoint.getX()+x, bottomPoint.getY()+y, bottomPoint.getZ()));
+
+                if(state.getBlock() != expectedBlock)
+                {
+                    merged = false;
+                    break;
+                }
             }
         }
     }
