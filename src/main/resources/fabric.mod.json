@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "project_stargate",
+  "id": "projectstargate",
   "version": "${version}",
 
   "name": "Project StarGate",
@@ -14,7 +14,7 @@
   },
 
   "license": "MIT",
-  "icon": "assets/modid/icon.png",
+  "icon": "assets/projectstargate/icon.png",
 
   "environment": "*",
   "entrypoints": {

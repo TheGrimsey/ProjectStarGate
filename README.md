@@ -1,9 +1,7 @@
-# Fabric Example Mod
+# Project StarGate
 
-## Setup
-
-For setup instructions please see the [fabric wiki page](https://fabricmc.net/wiki/tutorial:setup) that relates to the IDE that you are using.
+This is a sort of rewrite/port of the SGCraft mod.
 
 ## License
 
-This template is available under the CC0 license. Feel free to learn from it and incorporate it in your own projects.
+This mod is available under the MIT license. You are free to port or otherwise use it.
