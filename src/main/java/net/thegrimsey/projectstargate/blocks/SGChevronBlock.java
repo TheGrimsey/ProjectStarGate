@@ -1,8 +1,6 @@
 package net.thegrimsey.projectstargate.blocks;
 
-import net.minecraft.block.Block;
-
-public class SGChevronBlock extends Block {
+public class SGChevronBlock extends AbstractStarGateBlock {
     public SGChevronBlock(Settings settings) {
         super(settings);
     }

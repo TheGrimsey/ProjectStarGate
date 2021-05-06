@@ -1,8 +1,6 @@
 package net.thegrimsey.projectstargate.blocks;
 
-import net.minecraft.block.Block;
-
-public class SGBaseBlock extends Block {
+public class SGBaseBlock extends AbstractStarGateBlock {
     public SGBaseBlock(Settings settings) {
         super(settings);
     }
