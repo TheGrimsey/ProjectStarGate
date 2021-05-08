@@ -7,7 +7,9 @@ import net.minecraft.block.Blocks;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
+import net.minecraft.world.dimension.DimensionType;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
 import net.thegrimsey.projectstargate.utils.AddressingUtil;
 
@@ -48,7 +50,7 @@ public abstract class AbstractStarGateBlock extends Block{
 
     void checkMerge(World world, BlockPos pos)
     {
-        System.out.println(AddressingUtil.GetAddressForLocation(pos));
+        System.out.println(AddressingUtil.GetAddressForLocation(pos, world.getRegistryKey().getValue()));
 
         // Check for complete circle.
         // C R C R C

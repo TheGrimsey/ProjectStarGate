@@ -1,5 +1,6 @@
 package net.thegrimsey.projectstargate.utils;
 
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
 public class AddressingUtil {
@@ -13,15 +14,20 @@ public class AddressingUtil {
 
     static final String GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?!#";
 
-    public static String GetAddressForLocation(BlockPos pos)
+    public static String GetAddressForLocation(BlockPos pos, Identifier dimensionID)
     {
         StringBuilder address = new StringBuilder();
 
-        int regionX = pos.getX() / REGION_WIDTH;
-        int regionZ = pos.getZ() / REGION_WIDTH;
+        String xAddress = ConvertCoordinateToAddress(pos.getX());
+        String zAddress = ConvertCoordinateToAddress(pos.getZ());
 
-        address.append(ConvertCoordinateToBase39(regionX));
-        address.append(ConvertCoordinateToBase39(regionZ));
+        System.out.println(xAddress.length() + " : " + zAddress.length());
+
+        for(int i = 0; i < GLYPH_PER_COORDINATE; i++)
+        {
+            address.append(xAddress.charAt(i));
+            address.append(zAddress.charAt(i));
+        }
 
         return address.toString();
     }
@@ -30,23 +36,25 @@ public class AddressingUtil {
     *   Converts a coordinate to a 4 glyph long sequence.
     *   Going from least significant to most significant glyph.
      */
-    static String ConvertCoordinateToBase39(int coord)
+    static String ConvertCoordinateToAddress(int coordinate)
     {
+        // Translate coordinate to region coordinate.
+        coordinate = (coordinate + WORLD_WIDTH/2) / REGION_WIDTH;
+
         StringBuilder result = new StringBuilder();
 
-        coord += WORLD_WIDTH/2;
-
-        while(coord > GLYPH_COUNT-1)
+        // Convert to base GLYPH_COUNT and get corresponding glyph.
+        while(coordinate > GLYPH_COUNT-1)
         {
-            int remainder = coord % GLYPH_COUNT;
-            coord = coord / GLYPH_COUNT;
+            int remainder = coordinate % GLYPH_COUNT;
+            coordinate = coordinate / GLYPH_COUNT;
 
             result.append(GLYPHS.charAt(remainder));
         }
+        result.append(GLYPHS.charAt(coordinate));
 
-        result.append(GLYPHS.charAt(coord));
-
-        while(result.length() < 4)
+        // Pad remaining address length.
+        while(result.length() < GLYPH_PER_COORDINATE)
             result.append(GLYPHS.charAt(0));
 
         return result.toString();
