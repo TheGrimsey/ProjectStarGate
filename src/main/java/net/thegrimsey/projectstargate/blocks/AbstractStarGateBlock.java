@@ -9,6 +9,7 @@ import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
+import net.thegrimsey.projectstargate.utils.AddressingUtil;
 
 public abstract class AbstractStarGateBlock extends Block{
     public static final BooleanProperty MERGED = BooleanProperty.of("merged");
@@ -47,6 +48,8 @@ public abstract class AbstractStarGateBlock extends Block{
 
     void checkMerge(World world, BlockPos pos)
     {
+        System.out.println(AddressingUtil.GetAddressForLocation(pos));
+
         // Check for complete circle.
         // C R C R C
         // R A A A R
