@@ -16,11 +16,6 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
         super(settings);
     }
 
-    @Override
-    public BlockRenderType getRenderType(BlockState state) {
-        return state.get(MERGED) ? BlockRenderType.MODEL : BlockRenderType.MODEL; // TODO Block Entity Render
-    }
-
     @Nullable
     @Override
     public BlockEntity createBlockEntity(BlockView world) {

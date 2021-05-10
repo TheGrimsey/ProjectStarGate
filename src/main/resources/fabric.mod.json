@@ -20,6 +20,9 @@
   "entrypoints": {
     "main": [
       "net.thegrimsey.projectstargate.ProjectStarGate"
+    ],
+    "client": [
+      "net.thegrimsey.projectstargate.ProjectStarGateClient"
     ]
   },
   "mixins": [

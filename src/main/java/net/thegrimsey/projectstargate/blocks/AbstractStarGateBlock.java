@@ -4,6 +4,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.util.math.BlockPos;
@@ -11,6 +12,7 @@ import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
+import net.thegrimsey.projectstargate.blocks.entity.SGBaseBlockEntity;
 import net.thegrimsey.projectstargate.utils.AddressingUtil;
 
 public abstract class AbstractStarGateBlock extends Block{
@@ -95,10 +97,18 @@ public abstract class AbstractStarGateBlock extends Block{
             {
                 BlockPos targetPos = new BlockPos(bottomPoint.getX()+x, bottomPoint.getY()+y, bottomPoint.getZ());
                 BlockState state = world.getBlockState(targetPos);
+                BlockEntity entity = world.getBlockEntity(pos);
 
                 if(state.getBlock() instanceof  AbstractStarGateBlock)
                     world.setBlockState(targetPos, state.with(MERGED, true));
+                if(entity instanceof SGBaseBlockEntity)
+                {
+                    ((SGBaseBlockEntity) entity).merged = true;
+                    entity.markDirty();
+                }
             }
         }
     }
+
+    void OnMergeCheckDone() {}
 }
