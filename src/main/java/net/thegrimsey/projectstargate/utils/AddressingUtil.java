@@ -21,8 +21,6 @@ public class AddressingUtil {
         String xAddress = ConvertCoordinateToAddress(pos.getX());
         String zAddress = ConvertCoordinateToAddress(pos.getZ());
 
-        System.out.println(xAddress.length() + " : " + zAddress.length());
-
         for(int i = 0; i < GLYPH_PER_COORDINATE; i++)
         {
             address.append(xAddress.charAt(i));

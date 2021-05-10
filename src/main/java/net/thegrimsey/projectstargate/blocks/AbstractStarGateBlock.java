@@ -39,7 +39,7 @@ public abstract class AbstractStarGateBlock extends Block{
         checkMerge(world, pos);
     }
 
-    static int[] pattern = {
+    static int[] pattern = { // Upside down pattern.
             2, 1, 3, 1, 2,
             1, 0, 0, 0, 1,
             2, 0, 0, 0, 2,
@@ -50,8 +50,6 @@ public abstract class AbstractStarGateBlock extends Block{
 
     void checkMerge(World world, BlockPos pos)
     {
-        System.out.println(AddressingUtil.GetAddressForLocation(pos, world.getRegistryKey().getValue()));
-
         // Check for complete circle.
         // C R C R C
         // R A A A R
@@ -90,8 +88,6 @@ public abstract class AbstractStarGateBlock extends Block{
 
         if(!merged)
             return;
-
-        System.out.println("STRUCTURE DETECTED");
 
         for(int x = 0; x < 5; x++)
         {
