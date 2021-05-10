@@ -115,8 +115,6 @@ public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
     void renderRing(float r1, float r2, double dz, Matrix4f matrix4f, VertexConsumer vertexConsumer, int overlay, int light, boolean inner)
     {
         float z = (float)(ringDepth / 2 + dz);
-        float u = 0, du = 16, dv = 16;
-
         float inverse = (inner ? -1 : 1);
 
         for (int i = 0; i < ringSegmentCount; i++) {
@@ -134,114 +132,125 @@ public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
                 float x2 = inner ? r1c1 : r2c1, y2 = inner ? r1s1 : r2s1;
 
                 vertex(matrix4f, vertexConsumer, x1, y1, inverse * z, xNormal, yNormal, 0, 0, 0, overlay, light);
-                vertex(matrix4f, vertexConsumer, x1, y1, inverse * -z, xNormal, yNormal, 0, 0, 16, overlay, light);
-                vertex(matrix4f, vertexConsumer, x2, y2, inverse * -z, xNormal, yNormal, 0, 16, 16, overlay, light);
-                vertex(matrix4f, vertexConsumer, x2, y2, inverse * z, xNormal, yNormal, 0, 16, 0, overlay, light);
+                vertex(matrix4f, vertexConsumer, x1, y1, inverse * -z, xNormal, yNormal, 0, 0, 128, overlay, light);
+                vertex(matrix4f, vertexConsumer, x2, y2, inverse * -z, xNormal, yNormal, 0, 128, 128, overlay, light);
+                vertex(matrix4f, vertexConsumer, x2, y2, inverse * z, xNormal, yNormal, 0, 128, 0, overlay, light);
             }
 
             // Draw back.
-            vertex(matrix4f, vertexConsumer, r1c,   r1s,  -z, 0, 0, -1, 0, 16, overlay, light);
-            vertex(matrix4f, vertexConsumer, r1c1,  r1s1, -z, 0, 0, -1, 16, 16, overlay, light);
-            vertex(matrix4f, vertexConsumer, r2c1,  r2s1, -z, 0, 0, -1, 16, 0, overlay, light);
+            vertex(matrix4f, vertexConsumer, r1c,   r1s,  -z, 0, 0, -1, 0, 128, overlay, light);
+            vertex(matrix4f, vertexConsumer, r1c1,  r1s1, -z, 0, 0, -1, 128, 128, overlay, light);
+            vertex(matrix4f, vertexConsumer, r2c1,  r2s1, -z, 0, 0, -1, 128, 0, overlay, light);
             vertex(matrix4f, vertexConsumer, r2c,   r2s,  -z, 0, 0, -1, 0, 0, overlay, light);
 
             // Draw front.
-            vertex(matrix4f, vertexConsumer, r1c,   r1s,  z, 0, 0, 1, u+du,dv, overlay, light);
-            vertex(matrix4f, vertexConsumer, r2c,   r2s,  z, 0, 0, 1, u,dv, overlay, light);
-            vertex(matrix4f, vertexConsumer, r2c1,  r2s1, z, 0, 0, 1, u,0, overlay, light);
-            vertex(matrix4f, vertexConsumer, r1c1,  r1s1, z, 0, 0, 1, u+du,0, overlay, light);
+            {
+                float u = (inner ? 114*i : 128), uwidth = (inner ? 114 : 128);
+                float v = (inner ? 128 : 0), vheight = 128;
+                vertex(matrix4f, vertexConsumer, r1c,   r1s,  z, 0, 0, 1, u,v+vheight, overlay, light);
+                vertex(matrix4f, vertexConsumer, r2c,   r2s,  z, 0, 0, 1, u,v, overlay, light);
+                vertex(matrix4f, vertexConsumer, r2c1,  r2s1, z, 0, 0, 1, u+uwidth,v, overlay, light);
+                vertex(matrix4f, vertexConsumer, r1c1,  r1s1, z, 0, 0, 1, u+uwidth,v+vheight, overlay, light);
+            }
         }
     }
 
     void renderChevron(boolean engaged, MatrixStack matrices, VertexConsumer vertexConsumer, int overlay, int light)
     {
+        /*
+        *   This is rotated 90 degrees.
+        *   Positive X goes outwards.
+        *   Positive Y goes right.
+        *   Positive Z goes towards the front.
+         */
+
         float w = chevronBorderWidth;
         float w2 = w * 1.25f;
 
-        float x = chevronInnerRadius, y = chevronWidth / 4f;
-        float x2 = chevronOuterRadius, y2 = chevronWidth / 2f;
+        float xInner = chevronInnerRadius, yInner = chevronWidth / 4f;
+        float xOuter = chevronOuterRadius, yOuter = chevronWidth / 2f;
 
-        float z2 = ringDepth / 2f;
-        float z = z2 + chevronDepth;
+        float zFlat = ringDepth / 2f;
+        float zOut = zFlat + chevronDepth;
 
         if(engaged)
             matrices.translate(-chevronMotionDistance, 0, 0);
         Matrix4f matrix4f = matrices.peek().getModel();
 
         // Left-Forward Face
-        vertex(matrix4f, vertexConsumer, x2, y2,  z, 0, 0, 1, 0,2, overlay, light);
-        vertex(matrix4f, vertexConsumer, x, y,  z, 0, 0, 1, 0,16, overlay, light);
-        vertex(matrix4f, vertexConsumer, x+w, y-w, z, 0, 0, 1, 4,12, overlay, light);
-        vertex(matrix4f, vertexConsumer, x2, y2-w2, z, 0, 0, 1, 4,2, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter,  zOut, 0, 0, 1, 384,33, overlay, light); // TOPLEFT
+        vertex(matrix4f, vertexConsumer, xInner, yInner,  zOut, 0, 0, 1, 384,126, overlay, light); // BOTTOMLEFT
+        vertex(matrix4f, vertexConsumer, xInner+w, yInner-w, zOut, 0, 0, 1, 416,126, overlay, light); // BOTTOMRIGHT
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter-w2, zOut, 0, 0, 1, 416,33, overlay, light); // TOPRIGHT
 
         // Mid-Bottom-Forward Face
-        vertex(matrix4f, vertexConsumer, x+w, y-w, z,  0, 0, 1, 4,12, overlay, light);
-        vertex(matrix4f, vertexConsumer, x, y, z,            0, 0, 1, 0,16, overlay, light);
-        vertex(matrix4f, vertexConsumer, x, -y, z,           0, 0, 1, 16,16, overlay, light);
-        vertex(matrix4f, vertexConsumer, x+w, -y+w, z, 0, 0, 1, 12,12, overlay, light);
+        vertex(matrix4f, vertexConsumer, xInner+w, yInner-w, zOut,  0, 0, 1, 416,0, overlay, light); // TOP LEFT
+        vertex(matrix4f, vertexConsumer, xInner, yInner, zOut,            0, 0, 1, 416,34, overlay, light); // BOTTOM LEFT
+        vertex(matrix4f, vertexConsumer, xInner, -yInner, zOut,           0, 0, 1, 480,34, overlay, light); // BOTTOM RIGHT
+        vertex(matrix4f, vertexConsumer, xInner+w, -yInner+w, zOut, 0, 0, 1, 480,0, overlay, light); // TOP RIGHT
 
         // Right-Forward Face
-        vertex(matrix4f, vertexConsumer, x2, -y2+w2, z, 0, 0, 1, 12,0, overlay, light);
-        vertex(matrix4f, vertexConsumer, x+w, -y+w, z,0, 0, 1, 12,12, overlay, light);
-        vertex(matrix4f, vertexConsumer, x, -y, z, 0, 0, 1, 16,16, overlay, light);
-        vertex(matrix4f, vertexConsumer, x2, -y2, z, 0, 0, 1, 16,0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter+w2, zOut, 0, 0, 1, 480,33, overlay, light);
+        vertex(matrix4f, vertexConsumer, xInner+w, -yInner+w, zOut,0, 0, 1, 480,126, overlay, light);
+        vertex(matrix4f, vertexConsumer, xInner, -yInner, zOut, 0, 0, 1, 512,126, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter, zOut, 0, 0, 1, 512,33, overlay, light);
 
         // Mid-Top-Forward Face (Light up part)
-        vertex(matrix4f, vertexConsumer, x2, y2-w2, z, 0, 0, 1, 0,4, overlay, light);
-        vertex(matrix4f, vertexConsumer, x+w, y-w, z,0, 0, 1, 4,16, overlay, light);
-        vertex(matrix4f, vertexConsumer, x+w, 0, z, 0, 0, 1, 8,16, overlay, light);
-        vertex(matrix4f, vertexConsumer, x2, 0, z, 0, 0, 1, 8,4, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter-w2, zOut, 0, 0, 1, 256,28, overlay, light);
+        vertex(matrix4f, vertexConsumer, xInner+w, yInner-w, zOut,0, 0, 1, 256,128, overlay, light);
+        vertex(matrix4f, vertexConsumer, xInner+w, 0, zOut, 0, 0, 1, 320, 128, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, 0, zOut, 0, 0, 1, 320,28, overlay, light);
 
-        vertex(matrix4f, vertexConsumer, x2, 00, z, 0, 0, 1, 8,4, overlay, light);
-        vertex(matrix4f, vertexConsumer, x+w, 0, z,0, 0, 1, 8,16, overlay, light);
-        vertex(matrix4f, vertexConsumer, x+w, -y+w, z, 0, 0, 1, 12,16, overlay, light);
-        vertex(matrix4f, vertexConsumer, x2, -y2+w2, z, 0, 0, 1, 16,4, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, 0, zOut, 0, 0, 1, 320,28, overlay, light);
+        vertex(matrix4f, vertexConsumer, xInner+w, 0, zOut,0, 0, 1, 320,128, overlay, light);
+        vertex(matrix4f, vertexConsumer, xInner+w, -yInner+w, zOut, 0, 0, 1, 384,128, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter+w2, zOut, 0, 0, 1, 384,28, overlay, light);
 
         // Left Side
-        vertex(matrix4f, vertexConsumer, x2, y2, z, 0,0,1,0, 0, overlay, light);
-        vertex(matrix4f, vertexConsumer, x2, y2, z2, 0,0,1,0, 4, overlay, light);
-        vertex(matrix4f, vertexConsumer, x, y, z2, 0,0,1,16, 4, overlay, light);
-        vertex(matrix4f, vertexConsumer, x, y, z, 0,0,1,16, 0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter, zOut, 0,0,1,0, 0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter, zFlat, 0,0,1,0, 4, overlay, light);
+        vertex(matrix4f, vertexConsumer, xInner, yInner, zFlat, 0,0,1,16, 4, overlay, light);
+        vertex(matrix4f, vertexConsumer, xInner, yInner, zOut, 0,0,1,16, 0, overlay, light);
 
         // Bottom
-        vertex(matrix4f, vertexConsumer, x, y, z, 0,0,1,0, 0, overlay, light);
-        vertex(matrix4f, vertexConsumer, x, y, z2, 0,0,1,0, 4, overlay, light);
-        vertex(matrix4f, vertexConsumer, x, -y, z2, 0,0,1,16, 4, overlay, light);
-        vertex(matrix4f, vertexConsumer, x, -y, z, 0,0,1,16, 0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xInner, yInner, zOut, 0,0,1,416, 0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xInner, yInner, zFlat, 0,0,1,416, 34, overlay, light);
+        vertex(matrix4f, vertexConsumer, xInner, -yInner, zFlat, 0,0,1,480, 34, overlay, light);
+        vertex(matrix4f, vertexConsumer, xInner, -yInner, zOut, 0,0,1,480, 0, overlay, light);
 
         // Right Side
-        vertex(matrix4f, vertexConsumer, x, -y, z, 0, 0, 1, 0, 0, overlay, light);
-        vertex(matrix4f, vertexConsumer, x, -y, z2, 0, 0, 1, 0, 4, overlay, light);
-        vertex(matrix4f, vertexConsumer, x2, -y2, z2, 0, 0, 1, 16, 4, overlay, light);
-        vertex(matrix4f, vertexConsumer, x2, -y2, z, 0, 0, 1, 16, 0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xInner, -yInner, zOut, 0, 0, 1, 0, 0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xInner, -yInner, zFlat, 0, 0, 1, 0, 4, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter, zFlat, 0, 0, 1, 16, 4, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter, zOut, 0, 0, 1, 16, 0, overlay, light);
 
         // Top Left
-        vertex(matrix4f, vertexConsumer, x2, y2, z, 0, 0, 1, 16, 0, overlay, light);
-        vertex(matrix4f, vertexConsumer, x2, y2-w2, z, 0, 0, 1, 12, 0, overlay, light);
-        vertex(matrix4f, vertexConsumer, x2, y2-w2, z2, 0, 0, 1, 12, 4, overlay, light);
-        vertex(matrix4f, vertexConsumer, x2, y2, z2, 0, 0, 1, 16, 4, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter, zOut, 0, 0, 1, 384, 0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter-w2, zOut, 0, 0, 1, 384, 0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter-w2, zFlat, 0, 0, 1, 384, 0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter, zFlat, 0, 0, 1, 416, 0, overlay, light);
 
         // Top Right
-        vertex(matrix4f, vertexConsumer, x2, -y2, z, 0, 0, 1, 0,0, overlay, light);
-        vertex(matrix4f, vertexConsumer, x2, -y2, z2, 0, 0, 1, 0,4, overlay, light);
-        vertex(matrix4f, vertexConsumer, x2, -y2+w2, z2, 0, 0, 1, 4,4, overlay, light);
-        vertex(matrix4f, vertexConsumer, x2, -y2+w2, z, 0, 0, 1, 4,0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter, zOut, 0, 0, 1, 384, 0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter, zFlat, 0, 0, 1, 384, 34, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter+w2, zFlat, 0, 0, 1, 416, 34, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter+w2, zOut, 0, 0, 1, 416, 0, overlay, light);
 
-        // Top Middle
-        vertex(matrix4f, vertexConsumer, x2, y2-w2, z2, 0,0, 1, 0, 0, overlay, light);
-        vertex(matrix4f, vertexConsumer, x2, y2-w2, z, 0,0, 1, 0, 4, overlay, light);
-        vertex(matrix4f, vertexConsumer, x2, -y2+w2, z, 0,0, 1, 16, 4, overlay, light);
-        vertex(matrix4f, vertexConsumer, x2, -y2+w2, z2, 0,0, 1, 16, 0, overlay, light);
+        // Top Middle (Light up part)
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter-w2, zFlat, 0,0, 1, 256, 0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter-w2, zOut, 0,0, 1, 256, 30, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter+w2, zOut, 0,0, 1, 384, 30, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter+w2, zFlat, 0,0, 1, 384, 0, overlay, light);
 
         // Back.
-        vertex(matrix4f, vertexConsumer, x2, -y2, z2, 0,0,1,0, 0, overlay, light);
-        vertex(matrix4f, vertexConsumer, x, -y, z2, 0,0,1,0, 16, overlay, light);
-        vertex(matrix4f, vertexConsumer, x, y, z2, 0,0,1,16, 16, overlay, light);
-        vertex(matrix4f, vertexConsumer, x2, y2, z2, 0,0,1,16, 0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter, zFlat, 0,0,1,416, 34, overlay, light);
+        vertex(matrix4f, vertexConsumer, xInner, -yInner, zFlat, 0,0,1,416, 130, overlay, light);
+        vertex(matrix4f, vertexConsumer, xInner, yInner, zFlat, 0,0,1,480, 130, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter, zFlat, 0,0,1,480, 34, overlay, light);
     }
 
     void vertex(Matrix4f matrix4f, VertexConsumer vertexConsumer, float x, float y, float z, float nX, float nY, float nZ, float u, float v, int overlay, int light)
     {
-        vertexConsumer.vertex(matrix4f, x, y, z).color(1.0f, 1.0f, 1.0f, 1.0f).texture(u, v).overlay(overlay).light(light).normal(nX, nY, nZ).next();
+        vertexConsumer.vertex(matrix4f, x, y, z).color(1.0f, 1.0f, 1.0f, 1.0f).texture(u/4096f, v/256f).overlay(overlay).light(light).normal(nX, nY, nZ).next();
     }
 }
