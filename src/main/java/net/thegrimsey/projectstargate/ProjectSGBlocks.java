@@ -30,8 +30,7 @@ public class ProjectSGBlocks {
         SG_BASE_BLOCKENTITY = Registry.register(Registry.BLOCK_ENTITY_TYPE, new Identifier(ProjectStarGate.MODID, "sgbase_blockentity"), BlockEntityType.Builder.create(SGBaseBlockEntity::new, SG_BASE_BLOCK).build(null));
     }
 
-    private static void RegisterBlock(String Id, Block block)
-    {
+    private static void RegisterBlock(String Id, Block block) {
         Identifier identifier = new Identifier(ProjectStarGate.MODID, Id);
         Registry.register(Registry.BLOCK, identifier, block);
         Registry.register(Registry.ITEM, identifier, new BlockItem(block, new FabricItemSettings().group(ProjectStarGate.ITEM_GROUP)));

@@ -69,44 +69,37 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         engagedChevrons = tag.getShort("engagedChevrons");
     }
 
-    public boolean IsChevronEngaged(int chevron)
-    {
+    public boolean IsChevronEngaged(int chevron) {
         return (engagedChevrons & (1 << chevron)) != 0;
     }
-    public void SetChevronEngaged(int chevron)
-    {
+
+    public void SetChevronEngaged(int chevron) {
         engagedChevrons |= (1 << chevron);
     }
-    public void UnsetChevron(int chevron)
-    {
+
+    public void UnsetChevron(int chevron) {
         engagedChevrons &= ~(1 << chevron);
     }
 
     @Override
     public void tick() {
-        if(world == null)
+        if (world == null)
             return;
 
-        if(world.isClient())
-        {
+        if (world.isClient()) {
             clientUpdate();
-        }
-        else
-        {
+        } else {
             serverUpdate();
         }
     }
 
     @Environment(EnvType.CLIENT)
-    private void clientUpdate()
-    {
+    private void clientUpdate() {
 
     }
 
-    private void serverUpdate()
-    {
-        if(state == StarGateState.CONNECTED)
-        {
+    private void serverUpdate() {
+        if (state == StarGateState.CONNECTED) {
             // Teleport entities in the gate.
         }
     }
