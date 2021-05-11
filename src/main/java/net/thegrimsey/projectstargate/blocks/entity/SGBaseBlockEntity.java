@@ -19,7 +19,8 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     // Runtime values. These are not saved.
     public StarGateState state = StarGateState.IDLE;
     public float ringRotation = 0f;
-    public short engagedChevrons = 0;
+    public short engagedChevrons = 0; //Bitfield.
+    public String dialedAddress = "";
 
     public SGBaseBlockEntity() {
         super(ProjectSGBlocks.SG_BASE_BLOCKENTITY);
@@ -31,6 +32,8 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
         tag.putString("address", address);
         tag.putBoolean("merged", merged);
+        tag.putByte("facing", (byte) facing.getId());
+
         return tag;
     }
 
@@ -40,6 +43,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
         address = tag.getString("address");
         merged = tag.getBoolean("merged");
+        facing = Direction.byId(tag.getByte("facing"));
     }
 
     @Override
@@ -47,6 +51,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
         tag.putString("address", address);
         tag.putBoolean("merged", merged);
+        tag.putByte("facing", (byte) facing.getId());
 
         tag.putFloat("ringRotation", ringRotation);
         tag.putShort("engagedChevrons", engagedChevrons);
@@ -58,6 +63,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     public void fromClientTag(CompoundTag tag) {
         address = tag.getString("address");
         merged = tag.getBoolean("merged");
+        facing = Direction.byId(tag.getByte("facing"));
 
         ringRotation = tag.getFloat("ringRotation");
         engagedChevrons = tag.getShort("engagedChevrons");
@@ -78,6 +84,9 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
     @Override
     public void tick() {
+        if(world == null)
+            return;
+
         if(world.isClient())
         {
             clientUpdate();
@@ -96,6 +105,9 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
     private void serverUpdate()
     {
-
+        if(state == StarGateState.CONNECTED)
+        {
+            // Teleport entities in the gate.
+        }
     }
 }

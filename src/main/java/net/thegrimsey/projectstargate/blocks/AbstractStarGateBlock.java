@@ -10,6 +10,7 @@ import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldAccess;
 import net.minecraft.world.dimension.DimensionType;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
 import net.thegrimsey.projectstargate.blocks.entity.SGBaseBlockEntity;
@@ -39,6 +40,11 @@ public abstract class AbstractStarGateBlock extends Block{
         super.onBlockAdded(state, world, pos, oldState, notify);
 
         checkMerge(world, pos);
+    }
+
+    @Override
+    public void onBroken(WorldAccess world, BlockPos pos, BlockState state) {
+        super.onBroken(world, pos, state);
     }
 
     static int[] pattern = { // Upside down pattern.

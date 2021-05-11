@@ -70,6 +70,23 @@ public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
 
         matrices.push();
         matrices.translate(0.5, 2.5, 0.5);
+
+        //Rotate based on facing.
+        switch(entity.facing)
+        {
+            case SOUTH:
+                matrices.multiply(new Quaternion(0.f, 180.f, 0.f, true));
+                break;
+            case EAST:
+                matrices.multiply(new Quaternion(0.f, 270.f, 0.f, true));
+                break;
+            case WEST:
+                matrices.multiply(new Quaternion(0.f, 90.f, 0.f, true));
+                break;
+            default:
+                break;
+        }
+
         renderStarGate(entity, tickDelta, matrices, vertexConsumer, overlay, light);
         matrices.pop();
     }
