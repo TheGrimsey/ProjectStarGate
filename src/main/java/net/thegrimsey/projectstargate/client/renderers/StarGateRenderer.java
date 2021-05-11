@@ -33,15 +33,6 @@ public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
     final static float chevronBorderWidth = chevronWidth / 6f;
     final static float chevronMotionDistance = 1/8.0f;
 
-    final static int textureTilesWide = 32;
-    final static int textureTilesHigh = 2;
-    final static double textureScaleU = 1.0/(textureTilesWide * 16);
-    final static double textureScaleV = 1.0/(textureTilesHigh * 16);
-
-    final static double ringSymbolTextureLength = 512.0; //27 * 8;
-    final static double ringSymbolTextureHeight = 16.0; //12;
-    final static double ringSymbolSegmentWidth = ringSymbolTextureLength / ringSegmentCount;
-
     public final static int ehGridRadialSize = 5;
     public final static int ehGridPolarSize = ringSegmentCount;
     public final static double ehBandWidth = ringInnerRadius / ehGridRadialSize;
@@ -90,6 +81,7 @@ public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
 
         // Render inner ring.
         matrices.push(); // It gets it's own matrix so we can rotate it.
+        matrices.multiply(new Quaternion(0.f, 0.f, entity.ringRotation, true));
         renderRing(ringInnerRadius, ringMidRadius, 0, matrices.peek().getModel(), vertexConsumer, overlay, light, true);
         matrices.pop();
 
@@ -107,7 +99,7 @@ public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
             matrices.push();
             matrices.multiply(new Quaternion(0, 0, 90f - (i - 4) * anglesBetweenChevrons, true));
 
-            renderChevron(false, matrices, vertexConsumer, overlay, light);
+            renderChevron(entity.IsChevronEngaged(i), matrices, vertexConsumer, overlay, light);
             matrices.pop();
         }
     }
@@ -173,6 +165,8 @@ public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
         float zFlat = ringDepth / 2f;
         float zOut = zFlat + chevronDepth;
 
+        float engagedMultiplier = engaged ? 1.0f : 0.5f;
+
         if(engaged)
             matrices.translate(-chevronMotionDistance, 0, 0);
         Matrix4f matrix4f = matrices.peek().getModel();
@@ -196,15 +190,15 @@ public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
         vertex(matrix4f, vertexConsumer, xOuter, -yOuter, zOut, 0, 0, 1, 512,33, overlay, light);
 
         // Mid-Top-Forward Face (Light up part)
-        vertex(matrix4f, vertexConsumer, xOuter, yOuter-w2, zOut, 0, 0, 1, 256,28, overlay, light);
-        vertex(matrix4f, vertexConsumer, xInner+w, yInner-w, zOut,0, 0, 1, 256,128, overlay, light);
-        vertex(matrix4f, vertexConsumer, xInner+w, 0, zOut, 0, 0, 1, 320, 128, overlay, light);
-        vertex(matrix4f, vertexConsumer, xOuter, 0, zOut, 0, 0, 1, 320,28, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter-w2, zOut, 0, 0, 1, 256,28, overlay, light, engagedMultiplier, engagedMultiplier, engagedMultiplier);
+        vertex(matrix4f, vertexConsumer, xInner+w, yInner-w, zOut,0, 0, 1, 256,128, overlay, light, engagedMultiplier, engagedMultiplier, engagedMultiplier);
+        vertex(matrix4f, vertexConsumer, xInner+w, 0, zOut, 0, 0, 1, 320, 128, overlay, light, engagedMultiplier, engagedMultiplier, engagedMultiplier);
+        vertex(matrix4f, vertexConsumer, xOuter, 0, zOut, 0, 0, 1, 320,28, overlay, light, engagedMultiplier, engagedMultiplier, engagedMultiplier);
 
-        vertex(matrix4f, vertexConsumer, xOuter, 0, zOut, 0, 0, 1, 320,28, overlay, light);
-        vertex(matrix4f, vertexConsumer, xInner+w, 0, zOut,0, 0, 1, 320,128, overlay, light);
-        vertex(matrix4f, vertexConsumer, xInner+w, -yInner+w, zOut, 0, 0, 1, 384,128, overlay, light);
-        vertex(matrix4f, vertexConsumer, xOuter, -yOuter+w2, zOut, 0, 0, 1, 384,28, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, 0, zOut, 0, 0, 1, 320,28, overlay, light, engagedMultiplier, engagedMultiplier, engagedMultiplier);
+        vertex(matrix4f, vertexConsumer, xInner+w, 0, zOut,0, 0, 1, 320,128, overlay, light, engagedMultiplier, engagedMultiplier, engagedMultiplier);
+        vertex(matrix4f, vertexConsumer, xInner+w, -yInner+w, zOut, 0, 0, 1, 384,128, overlay, light, engagedMultiplier, engagedMultiplier, engagedMultiplier);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter+w2, zOut, 0, 0, 1, 384,28, overlay, light, engagedMultiplier, engagedMultiplier, engagedMultiplier);
 
         // Left Side
         vertex(matrix4f, vertexConsumer, xOuter, yOuter, zOut, 0,0,1,0, 0, overlay, light);
@@ -237,10 +231,10 @@ public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
         vertex(matrix4f, vertexConsumer, xOuter, -yOuter+w2, zOut, 0, 0, 1, 416, 0, overlay, light);
 
         // Top Middle (Light up part)
-        vertex(matrix4f, vertexConsumer, xOuter, yOuter-w2, zFlat, 0,0, 1, 256, 0, overlay, light);
-        vertex(matrix4f, vertexConsumer, xOuter, yOuter-w2, zOut, 0,0, 1, 256, 30, overlay, light);
-        vertex(matrix4f, vertexConsumer, xOuter, -yOuter+w2, zOut, 0,0, 1, 384, 30, overlay, light);
-        vertex(matrix4f, vertexConsumer, xOuter, -yOuter+w2, zFlat, 0,0, 1, 384, 0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter-w2, zFlat, 0,0, 1, 256, 0, overlay, light, engagedMultiplier, engagedMultiplier, engagedMultiplier);
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter-w2, zOut, 0,0, 1, 256, 30, overlay, light, engagedMultiplier, engagedMultiplier, engagedMultiplier);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter+w2, zOut, 0,0, 1, 384, 30, overlay, light, engagedMultiplier, engagedMultiplier, engagedMultiplier);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter+w2, zFlat, 0,0, 1, 384, 0, overlay, light, engagedMultiplier, engagedMultiplier, engagedMultiplier);
 
         // Back.
         vertex(matrix4f, vertexConsumer, xOuter, -yOuter, zFlat, 0,0,1,416, 34, overlay, light);
@@ -251,6 +245,10 @@ public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
 
     void vertex(Matrix4f matrix4f, VertexConsumer vertexConsumer, float x, float y, float z, float nX, float nY, float nZ, float u, float v, int overlay, int light)
     {
-        vertexConsumer.vertex(matrix4f, x, y, z).color(1.0f, 1.0f, 1.0f, 1.0f).texture(u/4096f, v/256f).overlay(overlay).light(light).normal(nX, nY, nZ).next();
+        vertex(matrix4f, vertexConsumer, x, y, z, nX, nY, nZ, u, v, overlay, light, 1.0f, 1.0f, 1.0f);
+    }
+    void vertex(Matrix4f matrix4f, VertexConsumer vertexConsumer, float x, float y, float z, float nX, float nY, float nZ, float u, float v, int overlay, int light, float r, float g, float b)
+    {
+        vertexConsumer.vertex(matrix4f, x, y, z).color(r, g, b, 1.0f).texture(u/4096f, v/256f).overlay(overlay).light(light).normal(nX, nY, nZ).next();
     }
 }
