@@ -125,6 +125,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     }
 
     private void serverUpdate() {
+
         switch(state)
         {
             case IDLE:
@@ -154,7 +155,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
             *
             *   To add to network complexity the inner ring switches direction everytime a chevron is locked in.
             *   I think ideally we just tell clients to start the dialing sequence with a set of rotations
-            *   and have them do it themselves. Problem comes with new clients though.gi
+            *   and have them do it themselves. Problem comes with new clients though.
              */
             // Rotate ring, engage chevrons.
             ringRotation = (ringRotation + 30.f) % 360;
