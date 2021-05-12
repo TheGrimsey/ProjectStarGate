@@ -6,6 +6,7 @@ import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher;
 import net.minecraft.client.render.block.entity.BlockEntityRenderer;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.util.math.Vector3f;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Quaternion;
@@ -96,7 +97,7 @@ public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
 
         // Render inner ring.
         matrices.push(); // It gets it's own matrix so we can rotate it.
-        matrices.multiply(new Quaternion(0.f, 0.f, entity.ringRotation, true));
+        matrices.multiply(Vector3f.POSITIVE_Z.getDegreesQuaternion(entity.currentRingRotation));
         renderRing(ringInnerRadius, ringMidRadius, 0, matrices.peek().getModel(), vertexConsumer, overlay, light, true);
         matrices.pop();
 
