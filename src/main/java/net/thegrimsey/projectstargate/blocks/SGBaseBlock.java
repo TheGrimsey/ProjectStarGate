@@ -9,7 +9,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
-import net.thegrimsey.projectstargate.ProjectSGBlocks;
+import net.minecraft.world.WorldAccess;
 import net.thegrimsey.projectstargate.blocks.entity.SGBaseBlockEntity;
 import net.thegrimsey.projectstargate.utils.AddressingUtil;
 import net.thegrimsey.projectstargate.utils.StarGatePattern;
@@ -38,6 +38,15 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
             entity.address = AddressingUtil.GetAddressForLocation(pos, world.getRegistryKey().getValue());
             entity.facing = state.get(FACING);
         }
+    }
+
+    @Override
+    public void onBroken(WorldAccess world, BlockPos pos, BlockState state) {
+        super.onBroken(world, pos, state);
+
+        BlockEntity blockEntity = world.getBlockEntity(pos);
+        if(blockEntity instanceof SGBaseBlockEntity)
+            ((SGBaseBlockEntity) blockEntity).setMerged(false);
     }
 
     @Nullable
@@ -103,7 +112,7 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
         }
 
         SGBaseBlockEntity sgBaseBlockEntity = (SGBaseBlockEntity) world.getBlockEntity(pos);
-        sgBaseBlockEntity.merged = true;
+        sgBaseBlockEntity.setMerged(true);
         sgBaseBlockEntity.markDirty();
 
         return true;

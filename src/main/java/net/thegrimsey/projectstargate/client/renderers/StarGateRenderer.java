@@ -64,7 +64,7 @@ public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
 
     @Override
     public void render(SGBaseBlockEntity entity, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, int overlay) {
-        if (!entity.merged)
+        if (!entity.isMerged())
             return;
 
         VertexConsumer vertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(new Identifier(ProjectStarGate.MODID, "textures/blockentity/stargate.png")));

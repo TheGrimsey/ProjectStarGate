@@ -6,15 +6,17 @@ import net.fabricmc.fabric.api.block.entity.BlockEntityClientSerializable;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Tickable;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
+import net.thegrimsey.projectstargate.utils.GlobalAddressStorage;
 import net.thegrimsey.projectstargate.utils.StarGateState;
 
 public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientSerializable, Tickable {
     public String address = "";
-    public boolean merged = false;
+    private boolean merged = false;
     public Direction facing = Direction.NORTH;
 
     // Runtime values. These are not saved.
@@ -186,5 +188,33 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         float minZ = getPos().getZ() - (onZ ? 1 : 0), maxZ = getPos().getZ() + (onZ ? 1 : 0);
 
         return new Box(minX, minY, minZ, maxX, maxY, maxZ);
+    }
+
+    public boolean isMerged() {
+        return merged;
+    }
+
+    public void setMerged(boolean merged) {
+        if(this.merged != merged)
+        {
+            this.merged = merged;
+
+            if(world instanceof ServerWorld)
+            {
+                ServerWorld serverWorld = (ServerWorld) world;
+                GlobalAddressStorage globalAddressStorage = serverWorld.getPersistentStateManager().getOrCreate(GlobalAddressStorage::new, "StarGate_GlobalAddressStorage");
+
+                if(merged)
+                {
+                    globalAddressStorage.addAddress(address, getPos());
+                }
+                else
+                {
+                    globalAddressStorage.removeAddress(address, getPos());
+                }
+
+                serverWorld.getPersistentStateManager().set(globalAddressStorage);
+            }
+        }
     }
 }

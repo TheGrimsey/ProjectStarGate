@@ -58,7 +58,4 @@ public abstract class AbstractStarGateBlock extends Block {
 
         return false;
     }
-
-    void OnMergeCheckDone() {
-    }
 }
