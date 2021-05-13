@@ -5,6 +5,8 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.block.entity.BlockEntityClientSerializable;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.projectile.FishingBobberEntity;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Tickable;
@@ -13,6 +15,8 @@ import net.minecraft.util.math.Direction;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
 import net.thegrimsey.projectstargate.utils.GlobalAddressStorage;
 import net.thegrimsey.projectstargate.utils.StarGateState;
+
+import java.util.List;
 
 public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientSerializable, Tickable {
     public String address = "";
@@ -25,6 +29,8 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     public short engagedChevrons = 0; //Bitfield.
     public String remoteAddress = "";
     public SGBaseBlockEntity remoteEntity;
+
+    public int ticksInState = 0;
 
     // Client visuals.
     public float currentRingRotation = 0.f, lastRingRotation = 0.f, startRingAngle = 0.f;
@@ -127,6 +133,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     }
 
     private void serverUpdate() {
+        ticksInState++;
 
         switch(state)
         {
@@ -163,6 +170,16 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
             ringRotation = (ringRotation + 30.f) % 360;
             sync();
         }
+
+        // TEMP
+        if(ticksInState >= 60)
+        {
+            // Connect.
+            state = StarGateState.CONNECTED;
+            ticksInState = 0;
+
+
+        }
     }
 
     private void connectedUpdate() {
@@ -172,7 +189,22 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         *   Teleport all entities moving through the portal.
         *   - Must translate position to correct position in destination portal.
          */
-        // Drain energy. Teleport entities.
+        // Drain energy. Teleport entities. Disconnect if max time (38 minutes)
+
+        List<LivingEntity> entitiesInGate = world.getEntitiesByClass(LivingEntity.class, getTeleportBounds(), null);
+        entitiesInGate.forEach(livingEntity -> {
+            double dX = livingEntity.getX() - livingEntity.prevX;
+            double dZ = livingEntity.getZ() - livingEntity.prevZ;
+            double length = Math.abs(dX) + Math.abs(dZ);
+            dX /= length;
+            dZ /= length;
+        });
+
+        if(ticksInState >= 38 * (20 * 60))
+        {
+            state = StarGateState.IDLE;
+            ticksInState = 0;
+        }
     }
 
     public float getInterpolatedRingRotation(float tickDelta)
@@ -216,5 +248,16 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
                 serverWorld.getPersistentStateManager().set(globalAddressStorage);
             }
         }
+    }
+
+    public void dial(String address)
+    {
+        // TODO Check is connected & if we can disconnect before dialing.
+
+        remoteAddress = address;
+        state = StarGateState.DIALING;
+        ticksInState = 0;
+
+        sync();
     }
 }
