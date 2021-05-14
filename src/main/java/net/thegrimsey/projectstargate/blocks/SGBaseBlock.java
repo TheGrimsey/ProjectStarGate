@@ -2,9 +2,14 @@ package net.thegrimsey.projectstargate.blocks;
 
 import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.item.ItemStack;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.DirectionProperty;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.BlockView;
@@ -47,6 +52,26 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
         BlockEntity blockEntity = world.getBlockEntity(pos);
         if(blockEntity instanceof SGBaseBlockEntity)
             ((SGBaseBlockEntity) blockEntity).setMerged(false);
+    }
+
+    @Override
+    public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
+
+        if(!world.isClient())
+        {
+            ItemStack item = player.getStackInHand(hand);
+            if(item.hasCustomName())
+            {
+                BlockEntity blockEntity = world.getBlockEntity(pos);
+                if(blockEntity instanceof SGBaseBlockEntity)
+                    ((SGBaseBlockEntity) blockEntity).dial(item.getName().asString());
+            }
+
+            return ActionResult.success(true);
+        }
+
+
+        return super.onUse(state, world, pos, player, hand, hit);
     }
 
     @Nullable

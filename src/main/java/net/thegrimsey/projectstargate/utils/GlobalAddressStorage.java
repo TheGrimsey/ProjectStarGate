@@ -80,4 +80,12 @@ public class GlobalAddressStorage extends PersistentState {
 
         markDirty();
     }
+    public boolean HasAddress(String address)
+    {
+        return worldAddresses.containsKey(address) && !worldAddresses.get(address).isEmpty();
+    }
+    public BlockPos getBlockPosFromAddress(String address)
+    {
+        return (BlockPos) worldAddresses.get(address).toArray()[0];
+    }
 }

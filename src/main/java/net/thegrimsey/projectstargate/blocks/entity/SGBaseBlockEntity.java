@@ -10,6 +10,7 @@ import net.minecraft.entity.projectile.FishingBobberEntity;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Tickable;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
@@ -24,7 +25,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     public Direction facing = Direction.NORTH;
 
     // Runtime values. These are not saved.
-    public StarGateState state = StarGateState.DIALING;
+    public StarGateState state = StarGateState.IDLE;
     public float ringRotation = 0f;
     public short engagedChevrons = 0; //Bitfield.
     public String remoteAddress = "";
@@ -174,11 +175,25 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         // TEMP
         if(ticksInState >= 60)
         {
-            // Connect.
-            state = StarGateState.CONNECTED;
-            ticksInState = 0;
+            ServerWorld serverWorld = (ServerWorld) world;
+            GlobalAddressStorage globalAddressStorage = serverWorld.getPersistentStateManager().getOrCreate(GlobalAddressStorage::new, "StarGate_GlobalAddressStorage");
 
+            // Failed to connect.
+            if(!globalAddressStorage.HasAddress(remoteAddress))
+            {
+                setState(StarGateState.IDLE);
+                return;
+            }
 
+            setState(StarGateState.CONNECTED);
+            BlockPos targetPos = globalAddressStorage.getBlockPosFromAddress(remoteAddress);
+
+            // Chunk loading.
+            serverWorld.setChunkForced(targetPos.getX() >> 4, targetPos.getZ() >> 4, true);
+
+            BlockEntity remoteBlockEntity = serverWorld.getBlockEntity(targetPos);
+            if(remoteBlockEntity instanceof SGBaseBlockEntity)
+                remoteEntity = (SGBaseBlockEntity) remoteBlockEntity;
         }
     }
 
@@ -193,17 +208,18 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
         List<LivingEntity> entitiesInGate = world.getEntitiesByClass(LivingEntity.class, getTeleportBounds(), null);
         entitiesInGate.forEach(livingEntity -> {
-            double dX = livingEntity.getX() - livingEntity.prevX;
+            /*double dX = livingEntity.getX() - livingEntity.prevX;
             double dZ = livingEntity.getZ() - livingEntity.prevZ;
             double length = Math.abs(dX) + Math.abs(dZ);
             dX /= length;
-            dZ /= length;
+            dZ /= length;*/
+
+            livingEntity.teleport(remoteEntity.getPos().getX(), remoteEntity.getPos().getY()+1, remoteEntity.getPos().getZ());
         });
 
         if(ticksInState >= 38 * (20 * 60))
         {
-            state = StarGateState.IDLE;
-            ticksInState = 0;
+            setState(StarGateState.IDLE);
         }
     }
 
@@ -255,9 +271,14 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         // TODO Check is connected & if we can disconnect before dialing.
 
         remoteAddress = address;
-        state = StarGateState.DIALING;
-        ticksInState = 0;
+        setState(StarGateState.DIALING);
 
         sync();
+    }
+
+    private void setState(StarGateState newState)
+    {
+        state = newState;
+        ticksInState = 0;
     }
 }
