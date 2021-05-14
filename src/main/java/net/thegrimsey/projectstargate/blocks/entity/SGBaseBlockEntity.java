@@ -6,7 +6,6 @@ import net.fabricmc.fabric.api.block.entity.BlockEntityClientSerializable;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.projectile.FishingBobberEntity;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Tickable;
@@ -28,8 +27,9 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     public StarGateState state = StarGateState.IDLE;
     public float ringRotation = 0f;
     public short engagedChevrons = 0; //Bitfield.
-    public String remoteAddress = "";
-    public SGBaseBlockEntity remoteEntity;
+    String remoteAddress = "";
+    SGBaseBlockEntity remoteGate;
+    boolean isRemote = false;
 
     public int ticksInState = 0;
 
@@ -88,9 +88,11 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     public boolean IsChevronEngaged(int chevron) {
         return (engagedChevrons & (1 << chevron)) != 0;
     }
+
     public void SetChevronEngaged(int chevron) {
         engagedChevrons |= (1 << chevron);
     }
+
     public void UnsetChevron(int chevron) {
         engagedChevrons &= ~(1 << chevron);
     }
@@ -110,22 +112,19 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     @Environment(EnvType.CLIENT)
     private void clientUpdate() {
         lastRingRotation = currentRingRotation;
-        switch(state)
-        {
+        switch (state) {
             case IDLE:
                 break;
-            case DIALING:
-            {
+            case DIALING: {
                 /*
-                *   TODO Correct interpolation.
-                *   Each time the server rotates we want to rotate to that rotation.
+                 *   TODO Correct interpolation.
+                 *   Each time the server rotates we want to rotate to that rotation.
                  */
-                if(Math.abs(currentRingRotation - ringRotation) > 10.f)
-                {
-                    currentRingRotation = (currentRingRotation + 30.f/20.f) % 360;
+                if (Math.abs(currentRingRotation - ringRotation) > 10.f) {
+                    currentRingRotation = (currentRingRotation + 30.f / 20.f) % 360;
                 }
             }
-                break;
+            break;
             case CONNECTED:
                 break;
             default:
@@ -136,8 +135,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     private void serverUpdate() {
         ticksInState++;
 
-        switch(state)
-        {
+        switch (state) {
             case IDLE:
                 break;
             case DIALING:
@@ -153,19 +151,18 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
     private void dialingUpdate() {
         // Rate limit to once every 20 ticks.
-        if(world.getTime() % 20 == 0)
-        {
+        if (world.getTime() % 20 == 0) {
             /*
-            *   What we really want to do here is:
-            *   - Check which chevron we are currently locking in.
-            *   - Rotate ring to it.
-            *   - Engage chevron.
-            *   - Repeat until all chevrons locked.
-            *   - Change to connected state.
-            *
-            *   To add to network complexity the inner ring switches direction everytime a chevron is locked in.
-            *   I think ideally we just tell clients to start the dialing sequence with a set of rotations
-            *   and have them do it themselves. Problem comes with new clients though.
+             *   What we really want to do here is:
+             *   - Check which chevron we are currently locking in.
+             *   - Rotate ring to it.
+             *   - Engage chevron.
+             *   - Repeat until all chevrons locked.
+             *   - Change to connected state.
+             *
+             *   To add to network complexity the inner ring switches direction everytime a chevron is locked in.
+             *   I think ideally we just tell clients to start the dialing sequence with a set of rotations
+             *   and have them do it themselves. Problem comes with new clients though.
              */
             // Rotate ring, engage chevrons.
             ringRotation = (ringRotation + 30.f) % 360;
@@ -173,36 +170,17 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         }
 
         // TEMP
-        if(ticksInState >= 60)
-        {
-            ServerWorld serverWorld = (ServerWorld) world;
-            GlobalAddressStorage globalAddressStorage = serverWorld.getPersistentStateManager().getOrCreate(GlobalAddressStorage::new, "StarGate_GlobalAddressStorage");
-
-            // Failed to connect.
-            if(!globalAddressStorage.HasAddress(remoteAddress))
-            {
-                setState(StarGateState.IDLE);
-                return;
-            }
-
-            setState(StarGateState.CONNECTED);
-            BlockPos targetPos = globalAddressStorage.getBlockPosFromAddress(remoteAddress);
-
-            // Chunk loading.
-            serverWorld.setChunkForced(targetPos.getX() >> 4, targetPos.getZ() >> 4, true);
-
-            BlockEntity remoteBlockEntity = serverWorld.getBlockEntity(targetPos);
-            if(remoteBlockEntity instanceof SGBaseBlockEntity)
-                remoteEntity = (SGBaseBlockEntity) remoteBlockEntity;
+        if (ticksInState >= 60) {
+            connect();
         }
     }
 
     private void connectedUpdate() {
         /*
-        *   Drain power.
-        *
-        *   Teleport all entities moving through the portal.
-        *   - Must translate position to correct position in destination portal.
+         *   Drain power.
+         *
+         *   Teleport all entities moving through the portal.
+         *   - Must translate position to correct position in destination portal.
          */
         // Drain energy. Teleport entities. Disconnect if max time (38 minutes)
 
@@ -214,22 +192,19 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
             dX /= length;
             dZ /= length;*/
 
-            livingEntity.teleport(remoteEntity.getPos().getX(), remoteEntity.getPos().getY()+1, remoteEntity.getPos().getZ());
+            livingEntity.teleport(remoteGate.getPos().getX(), remoteGate.getPos().getY() + 1, remoteGate.getPos().getZ());
         });
 
-        if(ticksInState >= 38 * (20 * 60))
-        {
-            setState(StarGateState.IDLE);
+        if (ticksInState >= 38 * (20 * 60)) {
+            disconnect();
         }
     }
 
-    public float getInterpolatedRingRotation(float tickDelta)
-    {
-        return (currentRingRotation + (30.f/20.f)*tickDelta) % 360;
+    public float getInterpolatedRingRotation(float tickDelta) {
+        return (currentRingRotation + (30.f / 20.f) * tickDelta) % 360;
     }
 
-    Box getTeleportBounds()
-    {
+    Box getTeleportBounds() {
         float minY = getPos().getY() + 1, maxY = getPos().getY() + 4;
         boolean onZ = facing == Direction.WEST || facing == Direction.EAST;
         float minX = getPos().getX() - (onZ ? 0 : 1), maxX = getPos().getX() + (onZ ? 0 : 1);
@@ -243,42 +218,96 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     }
 
     public void setMerged(boolean merged) {
-        if(this.merged != merged)
-        {
-            this.merged = merged;
+        if (this.merged == merged)
+            return;
 
-            if(world instanceof ServerWorld)
-            {
-                ServerWorld serverWorld = (ServerWorld) world;
-                GlobalAddressStorage globalAddressStorage = serverWorld.getPersistentStateManager().getOrCreate(GlobalAddressStorage::new, "StarGate_GlobalAddressStorage");
+        this.merged = merged;
 
-                if(merged)
-                {
-                    globalAddressStorage.addAddress(address, getPos());
-                }
-                else
-                {
-                    globalAddressStorage.removeAddress(address, getPos());
-                }
+        if (world instanceof ServerWorld) {
+            ServerWorld serverWorld = (ServerWorld) world;
+            GlobalAddressStorage globalAddressStorage = serverWorld.getPersistentStateManager().getOrCreate(GlobalAddressStorage::new, "StarGate_GlobalAddressStorage");
 
-                serverWorld.getPersistentStateManager().set(globalAddressStorage);
+            if (merged) {
+                globalAddressStorage.addAddress(address, getPos());
+            } else {
+                globalAddressStorage.removeAddress(address, getPos());
             }
+
+            serverWorld.getPersistentStateManager().set(globalAddressStorage);
         }
     }
 
-    public void dial(String address)
-    {
+    public void dial(String dialingAddress) {
         // TODO Check is connected & if we can disconnect before dialing.
 
-        remoteAddress = address;
+        // Check if remote gate is connected. If so we just instantly fail.
+        BlockPos targetPos = getBlockPosForAddress(remoteAddress);
+        if(targetPos == null)
+            return;
+
+        // Chunk loading.
+        ((ServerWorld)world).setChunkForced(targetPos.getX() >> 4, targetPos.getZ() >> 4, true);
+
+        // Get target block entity.
+        BlockEntity remoteBlockEntity = world.getBlockEntity(targetPos);
+        if (!(remoteBlockEntity instanceof SGBaseBlockEntity))
+            return;
+
+        remoteGate = (SGBaseBlockEntity) remoteBlockEntity;
+        remoteGate.setState(StarGateState.DIALING);
+        remoteGate.remoteAddress = address;
+        remoteGate.isRemote = true;
+
+        remoteAddress = dialingAddress;
         setState(StarGateState.DIALING);
 
         sync();
     }
 
-    private void setState(StarGateState newState)
+    void connect()
     {
+        BlockPos targetPos = getBlockPosForAddress(remoteAddress);
+        if(targetPos == null)
+            return;
+
+        BlockEntity remoteBlockEntity = world.getBlockEntity(targetPos);
+        if (remoteBlockEntity instanceof SGBaseBlockEntity)
+            remoteGate = (SGBaseBlockEntity) remoteBlockEntity;
+
+
+        setState(StarGateState.CONNECTED);
+        remoteGate.setState(StarGateState.CONNECTED);
+        engagedChevrons = 0b111_1111;
+        sync();
+    }
+
+    public void disconnect() {
+        engagedChevrons = 0;
+        remoteAddress = "";
+        setState(StarGateState.IDLE);
+
+        remoteGate.isRemote = false;
+        remoteGate.remoteGate = null;
+        remoteGate.remoteAddress = "";
+        remoteGate.engagedChevrons = 0;
+        remoteGate.setState(StarGateState.IDLE);
+        remoteGate = null;
+        sync();
+    }
+
+    private void setState(StarGateState newState) {
         state = newState;
         ticksInState = 0;
+    }
+
+    BlockPos getBlockPosForAddress(String address)
+    {
+        ServerWorld serverWorld = (ServerWorld) world;
+        GlobalAddressStorage globalAddressStorage = serverWorld.getPersistentStateManager().getOrCreate(GlobalAddressStorage::new, "StarGate_GlobalAddressStorage");
+        if (!globalAddressStorage.HasAddress(remoteAddress)) {
+            return null;
+        }
+
+        return globalAddressStorage.getBlockPosFromAddress(remoteAddress);
     }
 }
