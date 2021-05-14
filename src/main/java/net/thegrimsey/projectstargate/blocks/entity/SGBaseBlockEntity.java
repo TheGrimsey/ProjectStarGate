@@ -170,12 +170,15 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         }
 
         // TEMP
-        if (ticksInState >= 60) {
+        if (!isRemote && ticksInState >= 60) {
             connect();
         }
     }
 
-    private void connectedUpdate() {
+    void connectedUpdate() {
+        if(isRemote)
+            return;
+
         /*
          *   Drain power.
          *
@@ -241,22 +244,27 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         // TODO Check is connected & if we can disconnect before dialing.
 
         // Check if remote gate is connected. If so we just instantly fail.
-        BlockPos targetPos = getBlockPosForAddress(remoteAddress);
+        BlockPos targetPos = getBlockPosForAddress(dialingAddress);
         if(targetPos == null)
             return;
 
         // Chunk loading.
-        ((ServerWorld)world).setChunkForced(targetPos.getX() >> 4, targetPos.getZ() >> 4, true);
+        setChunkLoading(targetPos, true);
+        setChunkLoading(pos, true);
 
         // Get target block entity.
         BlockEntity remoteBlockEntity = world.getBlockEntity(targetPos);
         if (!(remoteBlockEntity instanceof SGBaseBlockEntity))
+        {
+            setChunkLoading(targetPos, false);
+            setChunkLoading(pos, false);
             return;
+        }
 
         remoteGate = (SGBaseBlockEntity) remoteBlockEntity;
-        remoteGate.setState(StarGateState.DIALING);
-        remoteGate.remoteAddress = address;
         remoteGate.isRemote = true;
+        remoteGate.remoteAddress = address;
+        remoteGate.setState(StarGateState.DIALING);
 
         remoteAddress = dialingAddress;
         setState(StarGateState.DIALING);
@@ -274,7 +282,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         if (remoteBlockEntity instanceof SGBaseBlockEntity)
             remoteGate = (SGBaseBlockEntity) remoteBlockEntity;
 
-
         setState(StarGateState.CONNECTED);
         remoteGate.setState(StarGateState.CONNECTED);
         engagedChevrons = 0b111_1111;
@@ -282,8 +289,12 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     }
 
     public void disconnect() {
-        engagedChevrons = 0;
+        // Stop chunkloading
+        setChunkLoading(pos, false);
+        setChunkLoading(remoteGate.pos, false);
+
         remoteAddress = "";
+        engagedChevrons = 0;
         setState(StarGateState.IDLE);
 
         remoteGate.isRemote = false;
@@ -304,10 +315,15 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     {
         ServerWorld serverWorld = (ServerWorld) world;
         GlobalAddressStorage globalAddressStorage = serverWorld.getPersistentStateManager().getOrCreate(GlobalAddressStorage::new, "StarGate_GlobalAddressStorage");
-        if (!globalAddressStorage.HasAddress(remoteAddress)) {
+        if (!globalAddressStorage.HasAddress(address)) {
             return null;
         }
 
-        return globalAddressStorage.getBlockPosFromAddress(remoteAddress);
+        return globalAddressStorage.getBlockPosFromAddress(address);
+    }
+
+    void setChunkLoading(BlockPos pos, boolean load)
+    {
+        ((ServerWorld)world).setChunkForced(pos.getX() >> 4, pos.getZ() >> 4, true);
     }
 }
