@@ -4,22 +4,24 @@ This is a full rewrite & sort of port of the [SGCraft mod](https://github.com/Al
 
 # Progress / TODO List / Tasks so far.
 
-[X] Generating addresses.
-[X] Storing gate addresses.
-[X] Basic dialing, teleporting, and disconnecting.
-[X] Port model from SGCraft.
+- [X] Generating addresses.
+- [X] Storing gate addresses.
+- [X] Basic dialing, teleporting, and disconnecting.
+- [X] Port model from SGCraft.
 
-TODO in no particular order:
-[ ] Dial Home Devices for entering addresses.
-[ ] Energy drain.
-[ ] Texture overhaul. (Mostly reworking to fit better with minecraft's regular texture resolutions)
-[ ] Event Horizon / Puddle visual.
-[ ] Correct dialing & chevron engagement (rotate to each chevron, switch rotation direction, etc)
+#### TODO in no particular order:
+- [ ] Unmerging of gates when blocks are broken.
+- [ ] Merging from other points than base.
+- [ ] Dial Home Devices for entering addresses.
+- [ ] Energy drain.
+- [ ] Texture overhaul. (Mostly reworking to fit better with minecraft's regular texture resolutions)
+- [ ] Event Horizon / Puddle visual.
+- [ ] Correct dialing & chevron engagement (rotate to each chevron, switch rotation direction, etc)
 
-[ ] Naquadah ore generation
-[ ] Naquadah generators.
-[ ] Zero Point Modules
-[ ] Crafting recipies.
+- [ ] Naquadah ore generation
+- [ ] Naquadah generators.
+- [ ] Zero Point Modules
+- [ ] Crafting recipies.
 
 ## License
 

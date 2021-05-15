@@ -106,7 +106,7 @@ public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
     }
 
     void renderChevrons(SGBaseBlockEntity entity, MatrixStack matrices, VertexConsumer vertexConsumer, int overlay, int light) {
-        int chevronCount = 7;
+        int chevronCount = 9;
         float anglesBetweenChevrons = 360f / chevronCount;
 
         for (int i = 0; i < chevronCount; i++) {
@@ -118,15 +118,15 @@ public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
         }
     }
 
-    void renderRing(float r1, float r2, double dz, Matrix4f matrix4f, VertexConsumer vertexConsumer, int overlay, int light, boolean inner) {
+    void renderRing(float innerRadius, float outerRadius, double dz, Matrix4f matrix4f, VertexConsumer vertexConsumer, int overlay, int light, boolean inner) {
         float z = (float) (ringDepth / 2 + dz);
         float inverse = (inner ? -1 : 1);
 
         for (int i = 0; i < ringSegmentCount; i++) {
-            float r2c = r2 * c[i], r2c1 = r2 * c[i + 1];
-            float r2s = r2 * s[i], r2s1 = r2 * s[i + 1];
-            float r1c = r1 * c[i], r1c1 = r1 * c[i + 1];
-            float r1s = r1 * s[i], r1s1 = r1 * s[i + 1];
+            float r2c = outerRadius * c[i], r2c1 = outerRadius * c[i + 1];
+            float r2s = outerRadius * s[i], r2s1 = outerRadius * s[i + 1];
+            float r1c = innerRadius * c[i], r1c1 = innerRadius * c[i + 1];
+            float r1s = innerRadius * s[i], r1s1 = innerRadius * s[i + 1];
 
             // Draw side.
             {

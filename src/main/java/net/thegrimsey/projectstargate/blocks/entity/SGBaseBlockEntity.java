@@ -103,14 +103,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         return (engagedChevrons & (1 << chevron)) != 0;
     }
 
-    public void SetChevronEngaged(int chevron) {
-        engagedChevrons |= (1 << chevron);
-    }
-
-    public void UnsetChevron(int chevron) {
-        engagedChevrons &= ~(1 << chevron);
-    }
-
     @Override
     public void tick() {
         if (world == null)
@@ -304,7 +296,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         }
 
         setState(StarGateState.CONNECTED);
-        engagedChevrons = 0b111_1111;
+        engagedChevrons = 0b1_1111_1111;
         sync();
         markDirty();
 
@@ -329,16 +321,17 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         setChunkLoading(pos, false);
         setChunkLoading(remoteGate.pos, false);
 
-        remoteAddress = "";
-        engagedChevrons = 0;
-        setState(StarGateState.IDLE);
-
         remoteGate.isRemote = false;
         remoteGate.remoteGate = null;
         remoteGate.remoteAddress = "";
         remoteGate.engagedChevrons = 0;
         remoteGate.setState(StarGateState.IDLE);
+
         remoteGate = null;
+        remoteAddress = "";
+        engagedChevrons = 0;
+        setState(StarGateState.IDLE);
+
         sync();
     }
 
@@ -358,6 +351,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     }
 
     void setChunkLoading(BlockPos pos, boolean load) {
-        ((ServerWorld) world).setChunkForced(pos.getX() >> 4, pos.getZ() >> 4, true);
+        ((ServerWorld) world).setChunkForced(pos.getX() >> 4, pos.getZ() >> 4, load);
     }
 }
