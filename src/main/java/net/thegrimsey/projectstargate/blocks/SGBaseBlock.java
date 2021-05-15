@@ -66,6 +66,12 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
                 if(blockEntity instanceof SGBaseBlockEntity)
                     ((SGBaseBlockEntity) blockEntity).dial(item.getName().asString());
             }
+            else
+            {
+                BlockEntity blockEntity = world.getBlockEntity(pos);
+                if(blockEntity instanceof SGBaseBlockEntity)
+                    ((SGBaseBlockEntity) blockEntity).disconnect();
+            }
 
             return ActionResult.success(true);
         }
