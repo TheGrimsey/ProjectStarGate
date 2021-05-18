@@ -12,10 +12,14 @@ public class GlobalAddressStorage extends PersistentState {
     // Set containing all known StarGate addresses and the positions of all SGBaseBlocks with that address.
     HashMap<String, HashSet<BlockPos>> worldAddresses;
 
+    // All addresses which are currently connected. Only one gate from each address can be dialed at the time.
+    HashSet<String> lockedAddresses;
+
     public GlobalAddressStorage() {
         super("StarGate_GlobalAddressStorage");
 
         worldAddresses = new HashMap<>();
+        lockedAddresses = new HashSet<>();
     }
 
     @Override
@@ -80,12 +84,26 @@ public class GlobalAddressStorage extends PersistentState {
 
         markDirty();
     }
-    public boolean HasAddress(String address)
+    public boolean hasAddress(String address)
     {
         return worldAddresses.containsKey(address) && !worldAddresses.get(address).isEmpty();
     }
     public BlockPos getBlockPosFromAddress(String address)
     {
         return (BlockPos) worldAddresses.get(address).toArray()[0];
+    }
+
+    public boolean isAddressLocked(String address)
+    {
+        return lockedAddresses.contains(address);
+    }
+
+    public void lockAddress(String address)
+    {
+        lockedAddresses.add(address);
+    }
+    public void unlockAddress(String address)
+    {
+        lockedAddresses.remove(address);
     }
 }

@@ -151,7 +151,7 @@ public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
             // Draw front.
             {
                 float u = (inner ? 29 * i : 32), uwidth = (inner ? 29 : 32);
-                float v = (inner ? 32 : 0), vheight = 32;
+                float v = (inner ? 35 : 0), vheight = 28;
                 vertex(matrix4f, vertexConsumer, r1c, r1s, z, 0, 0, 1, u, v + vheight, overlay, light);
                 vertex(matrix4f, vertexConsumer, r2c, r2s, z, 0, 0, 1, u, v, overlay, light);
                 vertex(matrix4f, vertexConsumer, r2c1, r2s1, z, 0, 0, 1, u + uwidth, v, overlay, light);

@@ -239,12 +239,15 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
         if (world instanceof ServerWorld) {
             ServerWorld serverWorld = (ServerWorld) world;
-            GlobalAddressStorage globalAddressStorage = serverWorld.getPersistentStateManager().getOrCreate(GlobalAddressStorage::new, "StarGate_GlobalAddressStorage");
+            GlobalAddressStorage globalAddressStorage = getGlobalAddressStorage();
 
             if (merged) {
                 globalAddressStorage.addAddress(address, getPos());
             } else {
                 globalAddressStorage.removeAddress(address, getPos());
+
+                if(gateState != StarGateState.IDLE)
+                    disconnect(true);
             }
 
             serverWorld.getPersistentStateManager().set(globalAddressStorage);
@@ -252,7 +255,22 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     }
 
     public void dial(String dialingAddress) {
+
+        if(dialingAddress.equals(address))
+        {
+            System.out.println("Dialing failed. Can't dial self: " + address);
+            return;
+        }
         // TODO Check is connected & if we can disconnect before dialing.
+
+        // Check if homeAddress is already locked & if dialingAddress is as well.
+        GlobalAddressStorage globalAddressStorage = getGlobalAddressStorage();
+        if(globalAddressStorage.isAddressLocked(address) || globalAddressStorage.isAddressLocked(dialingAddress))
+        {
+            //FAILED. Can't dial a locked address.
+            System.out.println("Dialing failed. One of the following addresses is already locked: " + address + ", " + dialingAddress);
+            return;
+        }
 
         // Check if remote gate is connected. If so we just instantly fail.
         BlockPos targetPos = getBlockPosForAddress(dialingAddress);
@@ -278,6 +296,9 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
         remoteAddress = dialingAddress;
         setState(StarGateState.DIALING);
+
+        globalAddressStorage.lockAddress(address);
+        globalAddressStorage.lockAddress(remoteAddress);
 
         sync();
     }
@@ -305,17 +326,26 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         remoteGate.engagedChevrons = engagedChevrons;
         remoteGate.sync();
         remoteGate.markDirty();
-
     }
 
-    public void disconnect() {
+    public void disconnect()
+    {
+        disconnect(false);
+    }
+
+    public void disconnect(boolean force) {
         if (gateState != StarGateState.CONNECTED)
             return;
 
-        if (isRemote) {
+        if (isRemote && !force) {
             System.out.println("Can't disconnect if remote gate. Only dialing gate can disconnect.");
             return;
         }
+
+        //Unlock addresses.
+        GlobalAddressStorage globalAddressStorage = getGlobalAddressStorage();
+        globalAddressStorage.unlockAddress(address);
+        globalAddressStorage.unlockAddress(remoteAddress);
 
         // Stop chunkloading
         setChunkLoading(pos, false);
@@ -341,13 +371,18 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     }
 
     BlockPos getBlockPosForAddress(String address) {
-        ServerWorld serverWorld = (ServerWorld) world;
-        GlobalAddressStorage globalAddressStorage = serverWorld.getPersistentStateManager().getOrCreate(GlobalAddressStorage::new, "StarGate_GlobalAddressStorage");
-        if (!globalAddressStorage.HasAddress(address)) {
+        GlobalAddressStorage globalAddressStorage = getGlobalAddressStorage();
+        if (!globalAddressStorage.hasAddress(address)) {
             return null;
         }
 
         return globalAddressStorage.getBlockPosFromAddress(address);
+    }
+
+    GlobalAddressStorage getGlobalAddressStorage() {
+        ServerWorld serverWorld = (ServerWorld) world;
+        GlobalAddressStorage globalAddressStorage = serverWorld.getPersistentStateManager().getOrCreate(GlobalAddressStorage::new, "StarGate_GlobalAddressStorage");
+        return globalAddressStorage;
     }
 
     void setChunkLoading(BlockPos pos, boolean load) {
