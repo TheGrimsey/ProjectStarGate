@@ -22,7 +22,7 @@ public class ProjectSGBlocks {
     public static final Material NaquadahMaterial = new FabricMaterialBuilder(MaterialColor.ORANGE).blocksPistons().build();
     // Mining Level 3 == Diamond, 2 == Iron
     public static final Block NAQUADAH_ORE = new Block(FabricBlockSettings.of(NaquadahMaterial).requiresTool().breakByTool(FabricToolTags.PICKAXES, 3).strength(4.0f, 4.f));
-    public static final Block NAQUADAH_BLOCK = new Block(FabricBlockSettings.of(NaquadahMaterial).breakByTool(FabricToolTags.PICKAXES, 2).strength(2.0f, 36.f));
+    public static final Block NAQUADAH_BLOCK = new Block(FabricBlockSettings.of(NaquadahMaterial).requiresTool().breakByTool(FabricToolTags.PICKAXES, 2).strength(2.0f, 36.f));
 
     public static final FabricBlockSettings SG_BLOCK_SETTINGS = FabricBlockSettings.of(NaquadahMaterial).breakByTool(FabricToolTags.PICKAXES).strength(3.0f, 24.f).nonOpaque();
     public static final SGBaseBlock SG_BASE_BLOCK = new SGBaseBlock(SG_BLOCK_SETTINGS);
@@ -42,7 +42,7 @@ public class ProjectSGBlocks {
         SG_BASE_BLOCKENTITY = Registry.register(Registry.BLOCK_ENTITY_TYPE, new Identifier(ProjectStarGate.MODID, "sgbase_blockentity"), BlockEntityType.Builder.create(SGBaseBlockEntity::new, SG_BASE_BLOCK).build(null));
     }
 
-    private static void RegisterBlock(String id, Block block) {
+    static void RegisterBlock(String id, Block block) {
         Identifier identifier = new Identifier(ProjectStarGate.MODID, id);
         Registry.register(Registry.BLOCK, identifier, block);
         Registry.register(Registry.ITEM, identifier, new BlockItem(block, new FabricItemSettings().group(ProjectStarGate.ITEM_GROUP)));
