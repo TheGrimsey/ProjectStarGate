@@ -22,6 +22,8 @@ public class ProjectSGBlocks {
     public static final Material NaquadahMaterial = new FabricMaterialBuilder(MaterialColor.ORANGE).blocksPistons().build();
     // Mining Level 3 == Diamond, 2 == Iron
     public static final Block NAQUADAH_ORE = new Block(FabricBlockSettings.of(NaquadahMaterial).requiresTool().breakByTool(FabricToolTags.PICKAXES, 3).strength(4.0f, 4.f));
+    public static final Block NAQUADAH_ORE_NETHER = new Block(FabricBlockSettings.of(NaquadahMaterial).requiresTool().breakByTool(FabricToolTags.PICKAXES, 3).strength(4.0f, 4.f));
+    public static final Block NAQUADAH_ORE_END = new Block(FabricBlockSettings.of(NaquadahMaterial).requiresTool().breakByTool(FabricToolTags.PICKAXES, 3).strength(4.0f, 4.f));
     public static final Block NAQUADAH_BLOCK = new Block(FabricBlockSettings.of(NaquadahMaterial).requiresTool().breakByTool(FabricToolTags.PICKAXES, 2).strength(2.0f, 36.f));
 
     public static final FabricBlockSettings SG_BLOCK_SETTINGS = FabricBlockSettings.of(NaquadahMaterial).breakByTool(FabricToolTags.PICKAXES).strength(3.0f, 24.f).nonOpaque();
@@ -37,6 +39,8 @@ public class ProjectSGBlocks {
         RegisterBlock("stargate_chevron", SG_CHEVRON_BLOCK);
 
         RegisterBlock("naquadah_ore", NAQUADAH_ORE);
+        RegisterBlock("naquadah_ore_nether", NAQUADAH_ORE_NETHER);
+        RegisterBlock("naquadah_ore_end", NAQUADAH_ORE_END);
         RegisterBlock("naquadah_block", NAQUADAH_BLOCK);
 
         SG_BASE_BLOCKENTITY = Registry.register(Registry.BLOCK_ENTITY_TYPE, new Identifier(ProjectStarGate.MODID, "sgbase_blockentity"), BlockEntityType.Builder.create(SGBaseBlockEntity::new, SG_BASE_BLOCK).build(null));
