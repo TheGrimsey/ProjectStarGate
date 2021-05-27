@@ -3,22 +3,33 @@ package net.thegrimsey.projectstargate.blocks.entity;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.block.entity.BlockEntityClientSerializable;
+import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.screen.NamedScreenHandlerFactory;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
+import net.minecraft.text.TranslatableText;
 import net.minecraft.util.Tickable;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
+import net.thegrimsey.projectstargate.screens.StargateScreenHandler;
 import net.thegrimsey.projectstargate.utils.GlobalAddressStorage;
 import net.thegrimsey.projectstargate.utils.StarGateState;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientSerializable, Tickable {
+public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientSerializable, Tickable, ExtendedScreenHandlerFactory {
     public StarGateState gateState = StarGateState.IDLE;
     public String address = "";
     public Direction facing = Direction.NORTH;
@@ -381,11 +392,26 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
     GlobalAddressStorage getGlobalAddressStorage() {
         ServerWorld serverWorld = (ServerWorld) world;
-        GlobalAddressStorage globalAddressStorage = serverWorld.getPersistentStateManager().getOrCreate(GlobalAddressStorage::new, "StarGate_GlobalAddressStorage");
-        return globalAddressStorage;
+        return serverWorld.getPersistentStateManager().getOrCreate(GlobalAddressStorage::new, "StarGate_GlobalAddressStorage");
     }
 
     void setChunkLoading(BlockPos pos, boolean load) {
         ((ServerWorld) world).setChunkForced(pos.getX() >> 4, pos.getZ() >> 4, load);
+    }
+
+    @Override
+    public void writeScreenOpeningData(ServerPlayerEntity player, PacketByteBuf buf) {
+        buf.writeString(address);
+    }
+
+    @Override
+    public Text getDisplayName() {
+        return new TranslatableText(getCachedState().getBlock().getTranslationKey());
+    }
+
+    @Nullable
+    @Override
+    public ScreenHandler createMenu(int syncId, PlayerInventory inv, PlayerEntity player) {
+        return new StargateScreenHandler(syncId, inv);
     }
 }

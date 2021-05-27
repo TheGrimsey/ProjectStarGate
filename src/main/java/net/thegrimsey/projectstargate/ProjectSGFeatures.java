@@ -23,33 +23,24 @@ public class ProjectSGFeatures {
             new OreFeatureConfig(OreFeatureConfig.Rules.BASE_STONE_OVERWORLD,
                                 ProjectSGBlocks.NAQUADAH_ORE.getDefaultState(),
                                 3))
-            .decorate(Decorator.RANGE.configure(new RangeDecoratorConfig(
-                    0,
-                    0,
-                    16
-            ))).spreadHorizontally()
+            .rangeOf(16)
+            .spreadHorizontally()
             .repeat(3);
 
     private static ConfiguredFeature<?, ?> NAQUADAH_ORE_NETHER = Feature.ORE.configure(
             new OreFeatureConfig(OreFeatureConfig.Rules.BASE_STONE_NETHER,
                     ProjectSGBlocks.NAQUADAH_ORE_NETHER.getDefaultState(),
                     6))
-            .decorate(Decorator.RANGE.configure(new RangeDecoratorConfig(
-                    0,
-                    0,
-                    128
-            ))).spreadHorizontally()
+            .rangeOf(128)
+            .spreadHorizontally()
             .repeat(3);
 
     private static ConfiguredFeature<?, ?> NAQUADAH_ORE_END = Feature.ORE.configure(
             new OreFeatureConfig(new BlockMatchRuleTest(Blocks.END_STONE),
                     ProjectSGBlocks.NAQUADAH_ORE_END.getDefaultState(),
                     9))
-            .decorate(Decorator.RANGE.configure(new RangeDecoratorConfig(
-                    0,
-                    0,
-                    128
-            ))).spreadHorizontally()
+            .rangeOf(128)
+            .spreadHorizontally()
             .repeat(3);
 
     public static void registerFeatures()
@@ -64,6 +55,5 @@ public class ProjectSGFeatures {
         RegistryKey<ConfiguredFeature<?,?>> registryKey = RegistryKey.of(Registry.CONFIGURED_FEATURE_WORLDGEN, new Identifier(ProjectStarGate.MODID, id));
         Registry.register(BuiltinRegistries.CONFIGURED_FEATURE, registryKey.getValue(), feature);
         BiomeModifications.addFeature(biomeSelector, GenerationStep.Feature.UNDERGROUND_ORES, registryKey);
-
     }
 }

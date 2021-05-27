@@ -5,6 +5,7 @@ import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
+import net.minecraft.screen.NamedScreenHandlerFactory;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.DirectionProperty;
 import net.minecraft.util.ActionResult;
@@ -60,7 +61,12 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
         if(!world.isClient())
         {
             ItemStack item = player.getStackInHand(hand);
-            if(item.hasCustomName())
+            if(item.isEmpty())
+            {
+                SGBaseBlockEntity baseBlockEntity = (SGBaseBlockEntity) world.getBlockEntity(pos);
+                player.openHandledScreen(baseBlockEntity);
+            }
+            else if(item.hasCustomName())
             {
                 BlockEntity blockEntity = world.getBlockEntity(pos);
                 if(blockEntity instanceof SGBaseBlockEntity)
