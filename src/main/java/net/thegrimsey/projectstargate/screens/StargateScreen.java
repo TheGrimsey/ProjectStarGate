@@ -1,12 +1,12 @@
 package net.thegrimsey.projectstargate.screens;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+
+import java.util.Objects;
 
 public class StargateScreen extends HandledScreen<StargateScreenHandler> {
     float textX;
@@ -19,8 +19,7 @@ public class StargateScreen extends HandledScreen<StargateScreenHandler> {
 
     @Override
     protected void drawBackground(MatrixStack matrices, float delta, int mouseX, int mouseY) {
-        RenderSystem.color4f(1.0F, 1.0F, 1.0F, 1.0F);
-        client.getTextureManager().bindTexture(TEXTURE);
+        Objects.requireNonNull(client).getTextureManager().bindTexture(TEXTURE);
         int x = (width - backgroundWidth) / 2;
         int y = (height - backgroundHeight) / 2;
         drawTexture(matrices, x, y, 0, 0, backgroundWidth, backgroundHeight);
@@ -43,7 +42,6 @@ public class StargateScreen extends HandledScreen<StargateScreenHandler> {
         // Center the title
         titleX = (backgroundWidth - textRenderer.getWidth(title)) / 2;
         textX = (backgroundWidth - textRenderer.getWidth(handler.getAddress()))/2f;
-        textRenderer.fontHeight = 18;
         backgroundHeight = 50;
     }
 }

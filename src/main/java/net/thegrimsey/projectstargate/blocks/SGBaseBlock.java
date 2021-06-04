@@ -2,10 +2,11 @@ package net.thegrimsey.projectstargate.blocks;
 
 import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.BlockEntityTicker;
+import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
-import net.minecraft.screen.NamedScreenHandlerFactory;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.DirectionProperty;
 import net.minecraft.util.ActionResult;
@@ -13,9 +14,9 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
+import net.thegrimsey.projectstargate.ProjectSGBlocks;
 import net.thegrimsey.projectstargate.blocks.entity.SGBaseBlockEntity;
 import net.thegrimsey.projectstargate.utils.AddressingUtil;
 import net.thegrimsey.projectstargate.utils.StarGatePattern;
@@ -31,8 +32,8 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
 
     @Nullable
     @Override
-    public BlockEntity createBlockEntity(BlockView world) {
-        return new SGBaseBlockEntity();
+    public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
+        return new SGBaseBlockEntity(pos, state);
     }
 
     @Override
@@ -148,11 +149,18 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
             }
         }
 
-        SGBaseBlockEntity sgBaseBlockEntity = (SGBaseBlockEntity) world.getBlockEntity(pos);
-        sgBaseBlockEntity.setMerged(true);
-        sgBaseBlockEntity.markDirty();
-
+        if(world.getBlockEntity(pos) instanceof SGBaseBlockEntity sgBaseBlockEntity)
+        {
+            sgBaseBlockEntity.setMerged(true);
+            sgBaseBlockEntity.markDirty();
+        }
         return true;
+    }
+
+    @Nullable
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
+        return type == ProjectSGBlocks.SG_BASE_BLOCKENTITY ? SGBaseBlockEntity::tick : null;
     }
 }
 

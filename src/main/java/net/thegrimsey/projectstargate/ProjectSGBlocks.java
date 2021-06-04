@@ -3,12 +3,11 @@ package net.thegrimsey.projectstargate;
 import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricMaterialBuilder;
+import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.fabricmc.fabric.api.tool.attribute.v1.FabricToolTags;
-import net.fabricmc.fabric.impl.object.builder.FabricBlockInternals;
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
+import net.minecraft.block.MapColor;
 import net.minecraft.block.Material;
-import net.minecraft.block.MaterialColor;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.item.BlockItem;
 import net.minecraft.util.Identifier;
@@ -19,7 +18,7 @@ import net.thegrimsey.projectstargate.blocks.SGRingBlock;
 import net.thegrimsey.projectstargate.blocks.entity.SGBaseBlockEntity;
 
 public class ProjectSGBlocks {
-    public static final Material NaquadahMaterial = new FabricMaterialBuilder(MaterialColor.ORANGE).blocksPistons().build();
+    public static final Material NaquadahMaterial = new FabricMaterialBuilder(MapColor.ORANGE).blocksPistons().build();
     // Mining Level 3 == Diamond, 2 == Iron
     public static final Block NAQUADAH_ORE = new Block(FabricBlockSettings.of(NaquadahMaterial).requiresTool().breakByTool(FabricToolTags.PICKAXES, 3).strength(4.0f, 4.f));
     public static final Block NAQUADAH_ORE_NETHER = new Block(FabricBlockSettings.of(NaquadahMaterial).requiresTool().breakByTool(FabricToolTags.PICKAXES, 3).strength(4.0f, 4.f));
@@ -43,7 +42,7 @@ public class ProjectSGBlocks {
         RegisterBlock("naquadah_ore_end", NAQUADAH_ORE_END);
         RegisterBlock("naquadah_block", NAQUADAH_BLOCK);
 
-        SG_BASE_BLOCKENTITY = Registry.register(Registry.BLOCK_ENTITY_TYPE, new Identifier(ProjectStarGate.MODID, "sgbase_blockentity"), BlockEntityType.Builder.create(SGBaseBlockEntity::new, SG_BASE_BLOCK).build(null));
+        SG_BASE_BLOCKENTITY = Registry.register(Registry.BLOCK_ENTITY_TYPE, new Identifier(ProjectStarGate.MODID, "sgbase_blockentity"), FabricBlockEntityTypeBuilder.create(SGBaseBlockEntity::new, SG_BASE_BLOCK).build(null));
     }
 
     static void RegisterBlock(String id, Block block) {

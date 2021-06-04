@@ -6,11 +6,9 @@ import net.minecraft.util.math.BlockPos;
 public class AddressingUtil {
     static final int REGION_WIDTH = 32;
     static final int WORLD_WIDTH = 60000000;
-    static final int REGION_MAX = WORLD_WIDTH / REGION_WIDTH;
 
     static final int GLYPH_COUNT = 39;
     static final int GLYPH_PER_COORDINATE = 4;
-    static final int GLYPH_COORD_MAX = (int) Math.pow(GLYPH_COUNT, GLYPH_PER_COORDINATE);
 
     static final String GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?!#";
 

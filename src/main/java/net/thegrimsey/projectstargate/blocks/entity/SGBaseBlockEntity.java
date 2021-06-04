@@ -9,18 +9,17 @@ import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
-import net.minecraft.screen.NamedScreenHandlerFactory;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableText;
-import net.minecraft.util.Tickable;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
+import net.minecraft.world.World;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
 import net.thegrimsey.projectstargate.screens.StargateScreenHandler;
 import net.thegrimsey.projectstargate.utils.GlobalAddressStorage;
@@ -28,8 +27,9 @@ import net.thegrimsey.projectstargate.utils.StarGateState;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 
-public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientSerializable, Tickable, ExtendedScreenHandlerFactory {
+public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientSerializable, ExtendedScreenHandlerFactory {
     public StarGateState gateState = StarGateState.IDLE;
     public String address = "";
     public Direction facing = Direction.NORTH;
@@ -47,15 +47,16 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     public int ticksInState = 0;
 
     // Client visuals.
-    public float currentRingRotation = 0.f, lastRingRotation = 0.f, startRingAngle = 0.f;
+    public float currentRingRotation = 0.f;
+    public float lastRingRotation = 0.f;
 
-    public SGBaseBlockEntity() {
-        super(ProjectSGBlocks.SG_BASE_BLOCKENTITY);
+    public SGBaseBlockEntity(BlockPos pos, BlockState state) {
+        super(ProjectSGBlocks.SG_BASE_BLOCKENTITY, pos, state);
     }
 
     @Override
-    public CompoundTag toTag(CompoundTag tag) {
-        super.toTag(tag);
+    public NbtCompound writeNbt(NbtCompound tag) {
+        super.writeNbt(tag);
 
         tag.putString("address", address);
         tag.putBoolean("merged", merged);
@@ -70,8 +71,8 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     }
 
     @Override
-    public void fromTag(BlockState state, CompoundTag tag) {
-        super.fromTag(state, tag);
+    public void readNbt(NbtCompound tag) {
+        super.readNbt(tag);
 
         address = tag.getString("address");
         merged = tag.getBoolean("merged");
@@ -87,7 +88,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     }
 
     @Override
-    public CompoundTag toClientTag(CompoundTag tag) {
+    public NbtCompound toClientTag(NbtCompound tag) {
         tag.putString("address", address);
         tag.putBoolean("merged", merged);
         tag.putByte("facing", (byte) facing.getId());
@@ -100,7 +101,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     }
 
     @Override
-    public void fromClientTag(CompoundTag tag) {
+    public void fromClientTag(NbtCompound tag) {
         address = tag.getString("address");
         merged = tag.getBoolean("merged");
         facing = Direction.byId(tag.getByte("facing"));
@@ -114,16 +115,15 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         return (engagedChevrons & (1 << chevron)) != 0;
     }
 
-    @Override
-    public void tick() {
-        if (world == null)
-            return;
-
-        if (world.isClient()) {
-            clientUpdate();
-        } else {
-            serverUpdate();
+    public static void tick(World world, BlockPos blockPos, BlockState blockState, BlockEntity blockEntity) {
+        if (world != null) {
+            if (world.isClient()) {
+                ((SGBaseBlockEntity) blockEntity).clientUpdate();
+            } else {
+                ((SGBaseBlockEntity) blockEntity).serverUpdate();
+            }
         }
+
     }
 
     @Environment(EnvType.CLIENT)
@@ -173,7 +173,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
     private void dialingUpdate() {
         // Rate limit to once every 20 ticks.
-        if (world.getTime() % 20 == 0) {
+        if (Objects.requireNonNull(world).getTime() % 20 == 0) {
             /*
              *   What we really want to do here is:
              *   - Check which chevron we are currently locking in.
@@ -209,7 +209,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
          */
         // Drain energy. Teleport entities. Disconnect if max time (38 minutes)
 
-        List<LivingEntity> entitiesInGate = world.getEntitiesByClass(LivingEntity.class, getTeleportBounds(), null);
+        List<LivingEntity> entitiesInGate = Objects.requireNonNull(world).getEntitiesByClass(LivingEntity.class, getTeleportBounds(), (livingEntity -> { return true; }));
         entitiesInGate.forEach(livingEntity -> {
             /*double dX = livingEntity.getX() - livingEntity.prevX;
             double dZ = livingEntity.getZ() - livingEntity.prevZ;
@@ -248,36 +248,33 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
         this.merged = merged;
 
-        if (world instanceof ServerWorld) {
-            ServerWorld serverWorld = (ServerWorld) world;
-            GlobalAddressStorage globalAddressStorage = getGlobalAddressStorage();
+        if (world instanceof ServerWorld serverWorld) {
+            GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance(serverWorld);
 
             if (merged) {
                 globalAddressStorage.addAddress(address, getPos());
             } else {
                 globalAddressStorage.removeAddress(address, getPos());
 
-                if(gateState != StarGateState.IDLE)
+                if (gateState != StarGateState.IDLE)
                     disconnect(true);
             }
 
-            serverWorld.getPersistentStateManager().set(globalAddressStorage);
+            //serverWorld.getPersistentStateManager().set(globalAddressStorage);
         }
     }
 
     public void dial(String dialingAddress) {
 
-        if(dialingAddress.equals(address))
-        {
+        if (dialingAddress.equals(address)) {
             System.out.println("Dialing failed. Can't dial self: " + address);
             return;
         }
         // TODO Check is connected & if we can disconnect before dialing.
 
         // Check if homeAddress is already locked & if dialingAddress is as well.
-        GlobalAddressStorage globalAddressStorage = getGlobalAddressStorage();
-        if(globalAddressStorage.isAddressLocked(address) || globalAddressStorage.isAddressLocked(dialingAddress))
-        {
+        GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance((ServerWorld) Objects.requireNonNull(world));
+        if (globalAddressStorage.isAddressLocked(address) || globalAddressStorage.isAddressLocked(dialingAddress)) {
             //FAILED. Can't dial a locked address.
             System.out.println("Dialing failed. One of the following addresses is already locked: " + address + ", " + dialingAddress);
             return;
@@ -321,7 +318,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
             return;
         }
 
-        BlockEntity remoteBlockEntity = world.getBlockEntity(targetPos);
+        BlockEntity remoteBlockEntity = Objects.requireNonNull(world).getBlockEntity(targetPos);
         if (!(remoteBlockEntity instanceof SGBaseBlockEntity)) {
             System.out.println("No valid block entity for position: " + targetPos.getX() + ", " + targetPos.getY() + ", " + targetPos.getZ());
             return;
@@ -339,8 +336,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         remoteGate.markDirty();
     }
 
-    public void disconnect()
-    {
+    public void disconnect() {
         disconnect(false);
     }
 
@@ -354,11 +350,11 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         }
 
         //Unlock addresses.
-        GlobalAddressStorage globalAddressStorage = getGlobalAddressStorage();
+        GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance((ServerWorld) Objects.requireNonNull(world));
         globalAddressStorage.unlockAddress(address);
         globalAddressStorage.unlockAddress(remoteAddress);
 
-        // Stop chunkloading
+        // Stop chunk loading
         setChunkLoading(pos, false);
         setChunkLoading(remoteGate.pos, false);
 
@@ -382,7 +378,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     }
 
     BlockPos getBlockPosForAddress(String address) {
-        GlobalAddressStorage globalAddressStorage = getGlobalAddressStorage();
+        GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance((ServerWorld) Objects.requireNonNull(world));
         if (!globalAddressStorage.hasAddress(address)) {
             return null;
         }
@@ -390,13 +386,8 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         return globalAddressStorage.getBlockPosFromAddress(address);
     }
 
-    GlobalAddressStorage getGlobalAddressStorage() {
-        ServerWorld serverWorld = (ServerWorld) world;
-        return serverWorld.getPersistentStateManager().getOrCreate(GlobalAddressStorage::new, "StarGate_GlobalAddressStorage");
-    }
-
     void setChunkLoading(BlockPos pos, boolean load) {
-        ((ServerWorld) world).setChunkForced(pos.getX() >> 4, pos.getZ() >> 4, load);
+        ((ServerWorld) Objects.requireNonNull(world)).setChunkForced(pos.getX() >> 4, pos.getZ() >> 4, load);
     }
 
     @Override

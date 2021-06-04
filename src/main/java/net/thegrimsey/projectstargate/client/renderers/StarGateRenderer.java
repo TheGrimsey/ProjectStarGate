@@ -1,15 +1,17 @@
 package net.thegrimsey.projectstargate.client.renderers;
 
+import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher;
 import net.minecraft.client.render.block.entity.BlockEntityRenderer;
+import net.minecraft.client.render.block.entity.BlockEntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.client.util.math.Vector3f;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Quaternion;
+import net.minecraft.util.math.Vec3f;
 import net.thegrimsey.projectstargate.ProjectStarGate;
 import net.thegrimsey.projectstargate.blocks.entity.SGBaseBlockEntity;
 
@@ -17,7 +19,7 @@ import net.thegrimsey.projectstargate.blocks.entity.SGBaseBlockEntity;
  *   Primarily based on original SGCraft implementation.
  *   https://github.com/AlmuraDev/SGCraft/blob/master/src/mod/gcewing/sg/client/renderer/SGBaseTERenderer.java
  */
-public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
+public class StarGateRenderer<T extends BlockEntity> implements BlockEntityRenderer<SGBaseBlockEntity> {
 
     final static int ringSegmentCount = 32;
     final static float ringInnerRadius = 2.0f;
@@ -56,10 +58,7 @@ public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
         }
     }
 
-    double u0, v0;
-
-    public StarGateRenderer(BlockEntityRenderDispatcher dispatcher) {
-        super(dispatcher);
+    public StarGateRenderer(BlockEntityRendererFactory.Context context) {
     }
 
     @Override
@@ -97,7 +96,7 @@ public class StarGateRenderer extends BlockEntityRenderer<SGBaseBlockEntity> {
 
         // Render inner ring.
         matrices.push(); // It gets it's own matrix so we can rotate it.
-        matrices.multiply(Vector3f.POSITIVE_Z.getDegreesQuaternion(entity.currentRingRotation));
+        matrices.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(entity.currentRingRotation));
         renderRing(ringInnerRadius, ringMidRadius, 0, matrices.peek().getModel(), vertexConsumer, overlay, light, true);
         matrices.pop();
 

@@ -3,7 +3,6 @@ package net.thegrimsey.projectstargate;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendereregistry.v1.BlockEntityRendererRegistry;
 import net.fabricmc.fabric.api.client.screenhandler.v1.ScreenRegistry;
-import net.minecraft.server.command.ForceLoadCommand;
 import net.thegrimsey.projectstargate.client.renderers.StarGateRenderer;
 import net.thegrimsey.projectstargate.screens.StargateScreen;
 

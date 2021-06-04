@@ -1,12 +1,12 @@
 package net.thegrimsey.projectstargate.utils;
 
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.PersistentState;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Set;
 
 public class GlobalAddressStorage extends PersistentState {
     // Set containing all known StarGate addresses and the positions of all SGBaseBlocks with that address.
@@ -16,22 +16,28 @@ public class GlobalAddressStorage extends PersistentState {
     HashSet<String> lockedAddresses;
 
     public GlobalAddressStorage() {
-        super("StarGate_GlobalAddressStorage");
+        super();
 
         worldAddresses = new HashMap<>();
         lockedAddresses = new HashSet<>();
     }
 
-    @Override
-    public void fromTag(CompoundTag tag) {
-        CompoundTag addressesTag = tag.getCompound("addresses");
+    public static GlobalAddressStorage getInstance(ServerWorld world) {
+        return world.getPersistentStateManager().getOrCreate(GlobalAddressStorage::fromNbt, GlobalAddressStorage::new, "StarGate_GlobalAddressStorage");
+    }
+
+
+    private static GlobalAddressStorage fromNbt(NbtCompound tag) {
+        GlobalAddressStorage globalAddressStorage = new GlobalAddressStorage();
+
+        NbtCompound addressesTag = tag.getCompound("addresses");
 
         addressesTag.getKeys().forEach((s -> {
-            CompoundTag addressSet = addressesTag.getCompound(s);
+            NbtCompound addressSet = addressesTag.getCompound(s);
             HashSet<BlockPos> addresses = new HashSet<>(addressSet.getKeys().size());
 
             addressSet.getKeys().forEach((positionKey -> {
-                CompoundTag positionTag = addressSet.getCompound(positionKey);
+                NbtCompound positionTag = addressSet.getCompound(positionKey);
                 int X = positionTag.getInt("X");
                 int Y = positionTag.getInt("Y");
                 int Z = positionTag.getInt("Z");
@@ -39,18 +45,20 @@ public class GlobalAddressStorage extends PersistentState {
                 addresses.add(new BlockPos(X, Y, Z));
             }));
 
-            worldAddresses.put(s, addresses);
+            globalAddressStorage.worldAddresses.put(s, addresses);
         }));
+
+        return globalAddressStorage;
     }
 
     @Override
-    public CompoundTag toTag(CompoundTag tag) {
-        CompoundTag addresses = new CompoundTag();
+    public NbtCompound writeNbt(NbtCompound tag) {
+        NbtCompound addresses = new NbtCompound();
 
         worldAddresses.forEach((s, blockPosSet) -> {
-            CompoundTag address = new CompoundTag();
+            NbtCompound address = new NbtCompound();
             blockPosSet.forEach(blockPos -> {
-                CompoundTag positionTag = new CompoundTag();
+                NbtCompound positionTag = new NbtCompound();
 
                 positionTag.putInt("X", blockPos.getX());
                 positionTag.putInt("Y", blockPos.getY());
@@ -69,7 +77,7 @@ public class GlobalAddressStorage extends PersistentState {
     public void addAddress(String address, BlockPos position)
     {
         if(!worldAddresses.containsKey(address))
-            worldAddresses.put(address, new HashSet<BlockPos>(1));
+            worldAddresses.put(address, new HashSet<>(1));
         worldAddresses.get(address).add(position);
 
         markDirty();

@@ -36,4 +36,4 @@ public enum StarGateState {
                 return StarGateState.IDLE;
         }
     }
-};
+}
