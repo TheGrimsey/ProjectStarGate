@@ -47,7 +47,9 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     public int ticksInState = 0;
 
     // Client visuals.
+    @Environment(EnvType.CLIENT)
     public float currentRingRotation = 0.f;
+    @Environment(EnvType.CLIENT)
     public float lastRingRotation = 0.f;
 
     public SGBaseBlockEntity(BlockPos pos, BlockState state) {
@@ -209,7 +211,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
          */
         // Drain energy. Teleport entities. Disconnect if max time (38 minutes)
 
-        List<LivingEntity> entitiesInGate = Objects.requireNonNull(world).getEntitiesByClass(LivingEntity.class, getTeleportBounds(), (livingEntity -> { return true; }));
+        List<LivingEntity> entitiesInGate = Objects.requireNonNull(world).getEntitiesByClass(LivingEntity.class, getTeleportBounds(), (livingEntity -> true));
         entitiesInGate.forEach(livingEntity -> {
             /*double dX = livingEntity.getX() - livingEntity.prevX;
             double dZ = livingEntity.getZ() - livingEntity.prevZ;
@@ -221,7 +223,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         });
 
         if (ticksInState >= 38 * (20 * 60)) {
-            disconnect();
+            disconnect(false);
         }
     }
 
@@ -238,8 +240,8 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         return new Box(minX, minY, minZ, maxX, maxY, maxZ);
     }
 
-    public boolean isMerged() {
-        return merged;
+    public boolean notMerged() {
+        return !merged;
     }
 
     public void setMerged(boolean merged) {
@@ -259,8 +261,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
                 if (gateState != StarGateState.IDLE)
                     disconnect(true);
             }
-
-            //serverWorld.getPersistentStateManager().set(globalAddressStorage);
         }
     }
 
@@ -334,10 +334,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         remoteGate.engagedChevrons = engagedChevrons;
         remoteGate.sync();
         remoteGate.markDirty();
-    }
-
-    public void disconnect() {
-        disconnect(false);
     }
 
     public void disconnect(boolean force) {

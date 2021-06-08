@@ -13,8 +13,10 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.text.TranslatableText;
 import net.minecraft.util.math.BlockPos;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
+import net.thegrimsey.projectstargate.screens.DHDScreenHandler;
 import org.jetbrains.annotations.Nullable;
 
 public class DHDBlockEntity extends BlockEntity implements BlockEntityClientSerializable, ExtendedScreenHandlerFactory {
@@ -40,6 +42,15 @@ public class DHDBlockEntity extends BlockEntity implements BlockEntityClientSeri
 
     @Override
     public void readNbt(NbtCompound nbt) {
+        if(nbt.contains("X"))
+        {
+            int x = nbt.getInt("X");
+            int y = nbt.getInt("Y");
+            int z = nbt.getInt("Z");
+
+            stargatePos = new BlockPos(x,y,z);
+        }
+
         super.readNbt(nbt);
     }
 
@@ -62,13 +73,13 @@ public class DHDBlockEntity extends BlockEntity implements BlockEntityClientSeri
 
     @Override
     public Text getDisplayName() {
-        return null;
+        return new TranslatableText(getCachedState().getBlock().getTranslationKey());
     }
 
     @Nullable
     @Override
     public ScreenHandler createMenu(int syncId, PlayerInventory inv, PlayerEntity player) {
-        return null;
+        return new DHDScreenHandler(syncId, inv);
     }
 
     public BlockPos getStargatePos() {

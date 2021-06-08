@@ -4,26 +4,23 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
 public class AddressingUtil {
-    static final int REGION_WIDTH = 32;
+    static final int REGION_WIDTH = 48;
     static final int WORLD_WIDTH = 60000000;
 
-    static final int GLYPH_COUNT = 39;
+    static final int GLYPH_COUNT = 36;
     static final int GLYPH_PER_COORDINATE = 4;
 
-    static final String GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?!#";
+    static final String GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
     public static String GetAddressForLocation(BlockPos pos, Identifier dimensionID)
     {
-        StringBuilder address = new StringBuilder();
+        StringBuilder address = new StringBuilder(GLYPH_PER_COORDINATE + GLYPH_PER_COORDINATE + 1);
 
         String xAddress = ConvertCoordinateToAddress(pos.getX());
         String zAddress = ConvertCoordinateToAddress(pos.getZ());
 
         for(int i = 0; i < GLYPH_PER_COORDINATE; i++)
-        {
-            address.append(xAddress.charAt(i));
-            address.append(zAddress.charAt(i));
-        }
+            address.append(xAddress.charAt(i)).append(zAddress.charAt(i));
 
         return address.toString();
     }
@@ -37,7 +34,7 @@ public class AddressingUtil {
         // Translate coordinate to region coordinate.
         coordinate = (coordinate + WORLD_WIDTH/2) / REGION_WIDTH;
 
-        StringBuilder result = new StringBuilder();
+        StringBuilder result = new StringBuilder(GLYPH_PER_COORDINATE);
 
         // Convert to base GLYPH_COUNT and get corresponding glyph.
         while(coordinate > GLYPH_COUNT-1)

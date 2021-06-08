@@ -37,7 +37,7 @@ public class DHDBlock extends Block implements BlockEntityProvider {
                 for (int y = -GateZSearchRadius; y < GateZSearchRadius; y++) {
                     if (world.getBlockEntity(bPos.set(x, y, z)) instanceof SGBaseBlockEntity sgBase) {
                         // Skip if this one isn't merged.
-                        if(!sgBase.isMerged())
+                        if(sgBase.notMerged())
                             continue;
 
                         //If we have a valid DHD entity then save our stargatepos as this one.
