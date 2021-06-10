@@ -12,33 +12,30 @@ public class AddressingUtil {
 
     static final String GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-    public static String GetAddressForLocation(BlockPos pos, Identifier dimensionID)
-    {
+    public static String GetAddressForLocation(BlockPos pos, Identifier dimensionID) {
         StringBuilder address = new StringBuilder(GLYPH_PER_COORDINATE + GLYPH_PER_COORDINATE + 1);
 
         String xAddress = ConvertCoordinateToAddress(pos.getX());
         String zAddress = ConvertCoordinateToAddress(pos.getZ());
 
-        for(int i = 0; i < GLYPH_PER_COORDINATE; i++)
+        for (int i = 0; i < GLYPH_PER_COORDINATE; i++)
             address.append(xAddress.charAt(i)).append(zAddress.charAt(i));
 
         return address.toString();
     }
 
     /*
-    *   Converts a coordinate to a 4 glyph long sequence.
-    *   Going from least significant to most significant glyph.
+     *   Converts a coordinate to a 4 glyph long sequence.
+     *   Going from least significant to most significant glyph.
      */
-    static String ConvertCoordinateToAddress(int coordinate)
-    {
+    static String ConvertCoordinateToAddress(int coordinate) {
         // Translate coordinate to region coordinate.
-        coordinate = (coordinate + WORLD_WIDTH/2) / REGION_WIDTH;
+        coordinate = (coordinate + WORLD_WIDTH / 2) / REGION_WIDTH;
 
         StringBuilder result = new StringBuilder(GLYPH_PER_COORDINATE);
 
         // Convert to base GLYPH_COUNT and get corresponding glyph.
-        while(coordinate > GLYPH_COUNT-1)
-        {
+        while (coordinate > GLYPH_COUNT - 1) {
             int remainder = coordinate % GLYPH_COUNT;
             coordinate = coordinate / GLYPH_COUNT;
 
@@ -47,7 +44,7 @@ public class AddressingUtil {
         result.append(GLYPHS.charAt(coordinate));
 
         // Pad remaining address length.
-        while(result.length() < GLYPH_PER_COORDINATE)
+        while (result.length() < GLYPH_PER_COORDINATE)
             result.append(GLYPHS.charAt(0));
 
         return result.toString();

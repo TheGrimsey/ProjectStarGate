@@ -34,12 +34,11 @@ public class StarGateRenderer<T extends BlockEntity> implements BlockEntityRende
     final static float chevronDepth = 0.125f;
     final static float chevronBorderWidth = chevronWidth / 6f;
     final static float chevronMotionDistance = 1 / 8.0f;
-
-    public final static int ehGridRadialSize = 5;
-    public final static int ehGridPolarSize = ringSegmentCount;
-    public final static double ehBandWidth = ringInnerRadius / ehGridRadialSize;
-
     final static double numIrisBlades = 12;
+
+    final static int ehGridRadialSize = 5;
+    final static int ehGridPolarSize = ringSegmentCount;
+    final static double ehBandWidth = ringInnerRadius / ehGridRadialSize;
 
     static int[][] chevronEngagementSequences = {
             {9, 3, 4, 5, 6, 0, 1, 2, 9}, // 7 symbols (9 = never enganged)

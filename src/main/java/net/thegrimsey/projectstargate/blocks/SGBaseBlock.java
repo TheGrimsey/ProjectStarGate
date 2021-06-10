@@ -1,6 +1,9 @@
 package net.thegrimsey.projectstargate.blocks;
 
-import net.minecraft.block.*;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockEntityProvider;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.HorizontalFacingBlock;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityTicker;
 import net.minecraft.block.entity.BlockEntityType;
@@ -40,10 +43,9 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
     public void onBlockAdded(BlockState state, World world, BlockPos pos, BlockState oldState, boolean notify) {
         super.onBlockAdded(state, world, pos, oldState, notify);
 
-        SGBaseBlockEntity entity = (SGBaseBlockEntity) world.getBlockEntity(pos);
-        if (entity != null) {
-            entity.address = AddressingUtil.GetAddressForLocation(pos, world.getRegistryKey().getValue());
-            entity.facing = state.get(FACING);
+        if (world.getBlockEntity(pos) instanceof SGBaseBlockEntity blockEntity) {
+            blockEntity.address = AddressingUtil.GetAddressForLocation(pos, world.getRegistryKey().getValue());
+            blockEntity.facing = state.get(FACING);
         }
     }
 
@@ -51,33 +53,23 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
     public void onBroken(WorldAccess world, BlockPos pos, BlockState state) {
         super.onBroken(world, pos, state);
 
-        BlockEntity blockEntity = world.getBlockEntity(pos);
-        if(blockEntity instanceof SGBaseBlockEntity)
-            ((SGBaseBlockEntity) blockEntity).setMerged(false);
+        if (world.getBlockEntity(pos) instanceof SGBaseBlockEntity blockEntity)
+            blockEntity.setMerged(false);
     }
 
     @Override
     public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
 
-        if(!world.isClient())
-        {
+        if (!world.isClient()) {
             ItemStack item = player.getStackInHand(hand);
-            if(item.isEmpty())
-            {
-                SGBaseBlockEntity baseBlockEntity = (SGBaseBlockEntity) world.getBlockEntity(pos);
-                player.openHandledScreen(baseBlockEntity);
-            }
-            else if(item.hasCustomName())
-            {
-                BlockEntity blockEntity = world.getBlockEntity(pos);
-                if(blockEntity instanceof SGBaseBlockEntity)
-                    ((SGBaseBlockEntity) blockEntity).dial(item.getName().asString());
-            }
-            else
-            {
-                BlockEntity blockEntity = world.getBlockEntity(pos);
-                if(blockEntity instanceof SGBaseBlockEntity)
-                    ((SGBaseBlockEntity) blockEntity).disconnect();
+            if (item.isEmpty()) {
+                player.openHandledScreen((SGBaseBlockEntity) world.getBlockEntity(pos));
+            } else if (item.hasCustomName()) {
+                if (world.getBlockEntity(pos) instanceof SGBaseBlockEntity blockEntity)
+                    blockEntity.dial(item.getName().asString());
+            } else {
+                if (world.getBlockEntity(pos) instanceof SGBaseBlockEntity blockEntity)
+                    blockEntity.disconnect(false);
             }
 
             return ActionResult.success(true);
@@ -149,8 +141,7 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
             }
         }
 
-        if(world.getBlockEntity(pos) instanceof SGBaseBlockEntity sgBaseBlockEntity)
-        {
+        if (world.getBlockEntity(pos) instanceof SGBaseBlockEntity sgBaseBlockEntity) {
             sgBaseBlockEntity.setMerged(true);
             sgBaseBlockEntity.markDirty();
         }

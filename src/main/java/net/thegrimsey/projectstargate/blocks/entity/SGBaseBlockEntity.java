@@ -33,27 +33,34 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     public StarGateState gateState = StarGateState.IDLE;
     public String address = "";
     public Direction facing = Direction.NORTH;
-    boolean merged = false;
-    String remoteAddress = "";
-
     // Runtime values. These are not saved.
     public float ringRotation = 0f;
     public short engagedChevrons = 0; //Bitfield.
-    SGBaseBlockEntity remoteGate;
-    boolean isRemote = false;
-
-    boolean needsInitialization = false;
-
     public int ticksInState = 0;
-
     // Client visuals.
     @Environment(EnvType.CLIENT)
     public float currentRingRotation = 0.f;
     @Environment(EnvType.CLIENT)
     public float lastRingRotation = 0.f;
+    boolean merged = false;
+    String remoteAddress = "";
+    SGBaseBlockEntity remoteGate;
+    boolean isRemote = false;
+    boolean needsInitialization = false;
 
     public SGBaseBlockEntity(BlockPos pos, BlockState state) {
         super(ProjectSGBlocks.SG_BASE_BLOCKENTITY, pos, state);
+    }
+
+    public static void tick(World world, BlockPos blockPos, BlockState blockState, BlockEntity blockEntity) {
+        if (world != null) {
+            if (world.isClient()) {
+                ((SGBaseBlockEntity) blockEntity).clientUpdate();
+            } else {
+                ((SGBaseBlockEntity) blockEntity).serverUpdate();
+            }
+        }
+
     }
 
     @Override
@@ -115,17 +122,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
     public boolean IsChevronEngaged(int chevron) {
         return (engagedChevrons & (1 << chevron)) != 0;
-    }
-
-    public static void tick(World world, BlockPos blockPos, BlockState blockState, BlockEntity blockEntity) {
-        if (world != null) {
-            if (world.isClient()) {
-                ((SGBaseBlockEntity) blockEntity).clientUpdate();
-            } else {
-                ((SGBaseBlockEntity) blockEntity).serverUpdate();
-            }
-        }
-
     }
 
     @Environment(EnvType.CLIENT)
@@ -375,9 +371,8 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
     BlockPos getBlockPosForAddress(String address) {
         GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance((ServerWorld) Objects.requireNonNull(world));
-        if (!globalAddressStorage.hasAddress(address)) {
+        if (!globalAddressStorage.hasAddress(address))
             return null;
-        }
 
         return globalAddressStorage.getBlockPosFromAddress(address);
     }

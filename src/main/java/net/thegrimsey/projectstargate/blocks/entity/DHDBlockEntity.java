@@ -42,13 +42,12 @@ public class DHDBlockEntity extends BlockEntity implements BlockEntityClientSeri
 
     @Override
     public void readNbt(NbtCompound nbt) {
-        if(nbt.contains("X"))
-        {
+        if (nbt.contains("X")) {
             int x = nbt.getInt("X");
             int y = nbt.getInt("Y");
             int z = nbt.getInt("Z");
 
-            stargatePos = new BlockPos(x,y,z);
+            stargatePos = new BlockPos(x, y, z);
         }
 
         super.readNbt(nbt);

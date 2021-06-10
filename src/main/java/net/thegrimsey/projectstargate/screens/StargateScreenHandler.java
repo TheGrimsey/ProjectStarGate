@@ -15,8 +15,7 @@ public class StargateScreenHandler extends ScreenHandler {
         address = buf.readString();
     }
 
-    public StargateScreenHandler(int syncId, PlayerInventory playerInventory)
-    {
+    public StargateScreenHandler(int syncId, PlayerInventory playerInventory) {
         super(ProjectStarGate.STARGATE_SCREENHANDLER, syncId);
     }
 

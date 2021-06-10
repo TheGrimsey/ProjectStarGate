@@ -11,8 +11,7 @@ public class DHDScreenHandler extends ScreenHandler {
         super(ProjectStarGate.DHD_SCREENHANDLER, syncId);
     }
 
-    public DHDScreenHandler(int syncId, PlayerInventory playerInventory)
-    {
+    public DHDScreenHandler(int syncId, PlayerInventory playerInventory) {
         super(ProjectStarGate.DHD_SCREENHANDLER, syncId);
     }
 

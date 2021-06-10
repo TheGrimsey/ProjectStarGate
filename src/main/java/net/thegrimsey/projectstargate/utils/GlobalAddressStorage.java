@@ -74,17 +74,16 @@ public class GlobalAddressStorage extends PersistentState {
         return tag;
     }
 
-    public void addAddress(String address, BlockPos position)
-    {
-        if(!worldAddresses.containsKey(address))
+    public void addAddress(String address, BlockPos position) {
+        if (!worldAddresses.containsKey(address))
             worldAddresses.put(address, new HashSet<>(1));
         worldAddresses.get(address).add(position);
 
         markDirty();
     }
-    public void removeAddress(String address, BlockPos position)
-    {
-        if(!worldAddresses.containsKey(address))
+
+    public void removeAddress(String address, BlockPos position) {
+        if (!worldAddresses.containsKey(address))
             return;
 
         HashSet<BlockPos> positionSet = worldAddresses.get(address);
@@ -92,26 +91,24 @@ public class GlobalAddressStorage extends PersistentState {
 
         markDirty();
     }
-    public boolean hasAddress(String address)
-    {
+
+    public boolean hasAddress(String address) {
         return worldAddresses.containsKey(address) && !worldAddresses.get(address).isEmpty();
     }
-    public BlockPos getBlockPosFromAddress(String address)
-    {
+
+    public BlockPos getBlockPosFromAddress(String address) {
         return (BlockPos) worldAddresses.get(address).toArray()[0];
     }
 
-    public boolean isAddressLocked(String address)
-    {
+    public boolean isAddressLocked(String address) {
         return lockedAddresses.contains(address);
     }
 
-    public void lockAddress(String address)
-    {
+    public void lockAddress(String address) {
         lockedAddresses.add(address);
     }
-    public void unlockAddress(String address)
-    {
+
+    public void unlockAddress(String address) {
         lockedAddresses.remove(address);
     }
 }

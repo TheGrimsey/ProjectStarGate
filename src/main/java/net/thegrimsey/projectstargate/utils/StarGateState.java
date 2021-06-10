@@ -5,14 +5,13 @@ public enum StarGateState {
     DIALING,
     CONNECTED;
 
-    public static byte toID(StarGateState state)
-    {
+    private static final StarGateState[] enumValues = StarGateState.values();
+
+    public static byte toID(StarGateState state) {
         return (byte) state.ordinal();
     }
-    public static StarGateState fromID(byte id)
-    {
+
+    public static StarGateState fromID(byte id) {
         return enumValues[id];
     }
-
-    private static final StarGateState[] enumValues = StarGateState.values();
 }
