@@ -78,7 +78,7 @@ public class DHDBlockEntity extends BlockEntity implements BlockEntityClientSeri
     @Nullable
     @Override
     public ScreenHandler createMenu(int syncId, PlayerInventory inv, PlayerEntity player) {
-        return new DHDScreenHandler(syncId, inv);
+        return new DHDScreenHandler(syncId, inv, this);
     }
 
     public BlockPos getStargatePos() {

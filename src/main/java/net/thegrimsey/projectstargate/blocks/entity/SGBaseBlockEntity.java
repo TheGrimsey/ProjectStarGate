@@ -30,23 +30,28 @@ import java.util.List;
 import java.util.Objects;
 
 public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientSerializable, ExtendedScreenHandlerFactory {
-    public StarGateState gateState = StarGateState.IDLE;
     public String address = "";
+    public StarGateState gateState = StarGateState.IDLE;
+    String remoteAddress = "";
     public Direction facing = Direction.NORTH;
+    boolean merged = false;
+    boolean isRemote = false;
+
     // Runtime values. These are not saved.
-    public float ringRotation = 0f;
-    public short engagedChevrons = 0; //Bitfield.
-    public int ticksInState = 0;
+    float ringRotation = 0f;
+    short engagedChevrons = 0; //Bitfield.
+    int ticksInState = 0;
+
+    SGBaseBlockEntity remoteGate;
+    boolean needsInitialization = false;
+
+    Box cachedBounds = null;
+
     // Client visuals.
     @Environment(EnvType.CLIENT)
     public float currentRingRotation = 0.f;
     @Environment(EnvType.CLIENT)
     public float lastRingRotation = 0.f;
-    boolean merged = false;
-    String remoteAddress = "";
-    SGBaseBlockEntity remoteGate;
-    boolean isRemote = false;
-    boolean needsInitialization = false;
 
     public SGBaseBlockEntity(BlockPos pos, BlockState state) {
         super(ProjectSGBlocks.SG_BASE_BLOCKENTITY, pos, state);
@@ -205,9 +210,12 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
          *   Teleport all entities moving through the portal.
          *   - Must translate position to correct position in destination portal.
          */
-        // Drain energy. Teleport entities. Disconnect if max time (38 minutes)
+        // Drain energy. Teleport entities.
 
-        List<LivingEntity> entitiesInGate = Objects.requireNonNull(world).getEntitiesByClass(LivingEntity.class, getTeleportBounds(), (livingEntity -> true));
+        if(cachedBounds == null)
+            cachedBounds = getTeleportBounds();
+
+        List<LivingEntity> entitiesInGate = Objects.requireNonNull(world).getEntitiesByClass(LivingEntity.class, cachedBounds, (livingEntity -> true));
         entitiesInGate.forEach(livingEntity -> {
             /*double dX = livingEntity.getX() - livingEntity.prevX;
             double dZ = livingEntity.getZ() - livingEntity.prevZ;
@@ -218,6 +226,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
             livingEntity.teleport(remoteGate.getPos().getX(), remoteGate.getPos().getY() + 1, remoteGate.getPos().getZ());
         });
 
+        // StarGates can only be open for 38 minutes. (SG:Atlantis S1E4)
         if (ticksInState >= 38 * (20 * 60)) {
             disconnect(false);
         }
@@ -251,6 +260,8 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
             if (merged) {
                 globalAddressStorage.addAddress(address, getPos());
+
+
             } else {
                 globalAddressStorage.removeAddress(address, getPos());
 
@@ -317,6 +328,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         BlockEntity remoteBlockEntity = Objects.requireNonNull(world).getBlockEntity(targetPos);
         if (!(remoteBlockEntity instanceof SGBaseBlockEntity)) {
             System.out.println("No valid block entity for position: " + targetPos.getX() + ", " + targetPos.getY() + ", " + targetPos.getZ());
+            GlobalAddressStorage.getInstance((ServerWorld) world).removeAddress(remoteAddress, targetPos);
             return;
         }
 
