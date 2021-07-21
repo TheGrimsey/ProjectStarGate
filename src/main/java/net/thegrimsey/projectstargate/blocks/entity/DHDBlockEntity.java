@@ -67,7 +67,7 @@ public class DHDBlockEntity extends BlockEntity implements BlockEntityClientSeri
 
     @Override
     public void writeScreenOpeningData(ServerPlayerEntity player, PacketByteBuf buf) {
-
+        buf.writeBlockPos(getPos());
     }
 
     @Override

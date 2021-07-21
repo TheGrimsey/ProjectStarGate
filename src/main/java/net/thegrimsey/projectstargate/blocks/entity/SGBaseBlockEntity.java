@@ -395,7 +395,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
     @Override
     public void writeScreenOpeningData(ServerPlayerEntity player, PacketByteBuf buf) {
-        buf.writeString(address);
+        buf.writeBlockPos(getPos());
     }
 
     @Override
