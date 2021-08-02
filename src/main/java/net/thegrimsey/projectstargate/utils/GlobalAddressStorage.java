@@ -1,9 +1,12 @@
 package net.thegrimsey.projectstargate.utils;
 
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.PersistentState;
+import net.minecraft.world.World;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,14 +19,12 @@ public class GlobalAddressStorage extends PersistentState {
     HashSet<String> lockedAddresses;
 
     public GlobalAddressStorage() {
-        super();
-
         worldAddresses = new HashMap<>();
         lockedAddresses = new HashSet<>();
     }
 
-    public static GlobalAddressStorage getInstance(ServerWorld world) {
-        return world.getPersistentStateManager().getOrCreate(GlobalAddressStorage::fromNbt, GlobalAddressStorage::new, "StarGate_GlobalAddressStorage");
+    public static GlobalAddressStorage getInstance(MinecraftServer server) {
+        return server.getOverworld().getPersistentStateManager().getOrCreate(GlobalAddressStorage::fromNbt, GlobalAddressStorage::new, "StarGate_GlobalAddressStorage");
     }
 
 
@@ -96,7 +97,7 @@ public class GlobalAddressStorage extends PersistentState {
         return worldAddresses.containsKey(address) && !worldAddresses.get(address).isEmpty();
     }
 
-    public BlockPos getBlockPosFromAddress(String address) {
+    public BlockPos getPosFromAddress(String address) {
         return (BlockPos) worldAddresses.get(address).toArray()[0];
     }
 

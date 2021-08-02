@@ -10,6 +10,7 @@ import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.DirectionProperty;
 import net.minecraft.util.ActionResult;
@@ -43,8 +44,11 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
     public void onBlockAdded(BlockState state, World world, BlockPos pos, BlockState oldState, boolean notify) {
         super.onBlockAdded(state, world, pos, oldState, notify);
 
+        if(world.isClient)
+            return;
+
         if (world.getBlockEntity(pos) instanceof SGBaseBlockEntity blockEntity) {
-            blockEntity.address = AddressingUtil.GetAddressForLocation(pos, world.getRegistryKey().getValue());
+            blockEntity.address = AddressingUtil.GetAddressForLocation((ServerWorld) world, pos);
             blockEntity.facing = state.get(FACING);
         }
     }

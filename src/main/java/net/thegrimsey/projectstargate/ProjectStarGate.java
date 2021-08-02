@@ -25,7 +25,6 @@ public class ProjectStarGate implements ModInitializer {
 
     @Override
     public void onInitialize() {
-
         ProjectSGBlocks.registerBlocks();
         ProjectSGItems.registerItems();
 

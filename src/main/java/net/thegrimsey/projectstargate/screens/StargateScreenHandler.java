@@ -20,7 +20,7 @@ public class StargateScreenHandler extends ScreenHandler {
         super(ProjectStarGate.STARGATE_SCREENHANDLER, syncId);
 
         pos = buf.readBlockPos();
-        address = AddressingUtil.GetAddressForLocation(pos, playerInventory.player.world.getRegistryKey().getValue());
+        address = buf.readString();
     }
 
     public StargateScreenHandler(int syncId, PlayerInventory playerInventory, BlockPos pos) {

@@ -3,7 +3,9 @@ package net.thegrimsey.projectstargate.blocks.entity;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.block.entity.BlockEntityClientSerializable;
+import net.fabricmc.fabric.api.dimension.v1.FabricDimensions;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
+import net.fabricmc.fabric.impl.biome.modification.BuiltInRegistryKeys;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.LivingEntity;
@@ -12,18 +14,28 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.screen.ScreenHandler;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableText;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.RegistryKey;
+import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
 import net.thegrimsey.projectstargate.screens.StargateScreenHandler;
+import net.thegrimsey.projectstargate.utils.AddressingUtil;
+import net.thegrimsey.projectstargate.utils.DimensionGlyphStorage;
 import net.thegrimsey.projectstargate.utils.GlobalAddressStorage;
 import net.thegrimsey.projectstargate.utils.StarGateState;
+import org.apache.logging.log4j.core.jmx.Server;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -210,7 +222,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
          *   Teleport all entities moving through the portal.
          *   - Must translate position to correct position in destination portal.
          */
-        // Drain energy. Teleport entities.
 
         if(cachedBounds == null)
             cachedBounds = getTeleportBounds();
@@ -223,7 +234,12 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
             dX /= length;
             dZ /= length;*/
 
-            livingEntity.teleport(remoteGate.getPos().getX(), remoteGate.getPos().getY() + 1, remoteGate.getPos().getZ());
+            FabricDimensions.teleport(livingEntity, (ServerWorld)remoteGate.world,
+                    new TeleportTarget(
+                            new Vec3d(remoteGate.getPos().getX(), remoteGate.getPos().getY() + 1, remoteGate.getPos().getZ()),
+                            livingEntity.getVelocity(),
+                            livingEntity.getYaw(),
+                            livingEntity.getPitch()));
         });
 
         // StarGates can only be open for 38 minutes. (SG:Atlantis S1E4)
@@ -256,7 +272,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         this.merged = merged;
 
         if (world instanceof ServerWorld serverWorld) {
-            GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance(serverWorld);
+            GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance(serverWorld.getServer());
 
             if (merged) {
                 globalAddressStorage.addAddress(address, getPos());
@@ -272,7 +288,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     }
 
     public void dial(String dialingAddress) {
-
         if (dialingAddress.equals(address)) {
             System.out.println("Dialing failed. Can't dial self: " + address);
             return;
@@ -280,7 +295,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         // TODO Check is connected & if we can disconnect before dialing.
 
         // Check if homeAddress is already locked & if dialingAddress is as well.
-        GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance((ServerWorld) Objects.requireNonNull(world));
+        GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance(world.getServer());
         if (globalAddressStorage.isAddressLocked(address) || globalAddressStorage.isAddressLocked(dialingAddress)) {
             //FAILED. Can't dial a locked address.
             System.out.println("Dialing failed. One of the following addresses is already locked: " + address + ", " + dialingAddress);
@@ -288,19 +303,20 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         }
 
         // Check if remote gate is connected. If so we just instantly fail.
-        BlockPos targetPos = getBlockPosForAddress(dialingAddress);
-        if (targetPos == null)
+        Pair<BlockPos, World> target = getPosAndWorldForAddress(dialingAddress);
+        if (target == null)
             return;
 
         // Chunk loading.
-        setChunkLoading(targetPos, true);
-        setChunkLoading(pos, true);
+        setChunkLoading(target, true);
+        setChunkLoading(new Pair<>(pos, world), true);
 
         // Get target block entity.
-        BlockEntity remoteBlockEntity = world.getBlockEntity(targetPos);
+        BlockEntity remoteBlockEntity = target.getRight().getBlockEntity(target.getLeft());
         if (!(remoteBlockEntity instanceof SGBaseBlockEntity)) {
-            setChunkLoading(targetPos, false);
-            setChunkLoading(pos, false);
+            setChunkLoading(target, false);
+            setChunkLoading(new Pair<>(pos, world), false);
+            GlobalAddressStorage.getInstance(world.getServer()).removeAddress(dialingAddress, target.getLeft());
             return;
         }
 
@@ -319,16 +335,16 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     }
 
     void connect() {
-        BlockPos targetPos = getBlockPosForAddress(remoteAddress);
-        if (targetPos == null) {
+        Pair<BlockPos, World> target = getPosAndWorldForAddress(remoteAddress);
+        if (target == null) {
             System.out.println("No valid position for address: " + remoteAddress);
             return;
         }
 
-        BlockEntity remoteBlockEntity = Objects.requireNonNull(world).getBlockEntity(targetPos);
+        BlockEntity remoteBlockEntity = target.getRight().getBlockEntity(target.getLeft());
         if (!(remoteBlockEntity instanceof SGBaseBlockEntity)) {
-            System.out.println("No valid block entity for position: " + targetPos.getX() + ", " + targetPos.getY() + ", " + targetPos.getZ());
-            GlobalAddressStorage.getInstance((ServerWorld) world).removeAddress(remoteAddress, targetPos);
+            System.out.println("No valid block entity for position: " + target.getLeft().getX() + ", " + target.getLeft().getY() + ", " + target.getLeft().getZ());
+            GlobalAddressStorage.getInstance(world.getServer()).removeAddress(remoteAddress, target.getLeft());
             return;
         }
 
@@ -354,13 +370,13 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         }
 
         //Unlock addresses.
-        GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance((ServerWorld) Objects.requireNonNull(world));
+        GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance(world.getServer());
         globalAddressStorage.unlockAddress(address);
         globalAddressStorage.unlockAddress(remoteAddress);
 
         // Stop chunk loading
-        setChunkLoading(pos, false);
-        setChunkLoading(remoteGate.pos, false);
+        setChunkLoading(new Pair<>(pos, world), false);
+        setChunkLoading(new Pair<>(remoteGate.pos, remoteGate.world), false);
 
         remoteGate.isRemote = false;
         remoteGate.remoteGate = null;
@@ -381,21 +397,31 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         ticksInState = 0;
     }
 
-    BlockPos getBlockPosForAddress(String address) {
-        GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance((ServerWorld) Objects.requireNonNull(world));
+    Pair<BlockPos,World> getPosAndWorldForAddress(String address) {
+        GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance(world.getServer());
         if (!globalAddressStorage.hasAddress(address))
             return null;
 
-        return globalAddressStorage.getBlockPosFromAddress(address);
+        MinecraftServer server = world.getServer();
+        BlockPos targetPos = globalAddressStorage.getPosFromAddress(address);
+
+        // TODO Clean up hack before release. This is overly complicted but I am running with it right now.
+        char dimensionGlyph = address.charAt(address.length()-1);
+        byte dimensionByte = (byte) AddressingUtil.GLYPHS.indexOf(dimensionGlyph);
+        Identifier dimensionId = new Identifier(DimensionGlyphStorage.getInstance(server).GetDimensionIdentifierFromGlyph(dimensionByte));
+        World targetWorld = server.getWorld(RegistryKey.of(Registry.WORLD_KEY,dimensionId));
+
+        return new Pair<>(targetPos, targetWorld);
     }
 
-    void setChunkLoading(BlockPos pos, boolean load) {
-        ((ServerWorld) Objects.requireNonNull(world)).setChunkForced(pos.getX() >> 4, pos.getZ() >> 4, load);
+    void setChunkLoading(Pair<BlockPos, World> target, boolean load) {
+        ((ServerWorld) target.getRight()).setChunkForced(target.getLeft().getX() >> 4, target.getLeft().getZ() >> 4, load);
     }
 
     @Override
     public void writeScreenOpeningData(ServerPlayerEntity player, PacketByteBuf buf) {
         buf.writeBlockPos(getPos());
+        buf.writeString(address);
     }
 
     @Override
@@ -406,6 +432,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     @Nullable
     @Override
     public ScreenHandler createMenu(int syncId, PlayerInventory inv, PlayerEntity player) {
-        return new StargateScreenHandler(syncId, inv);
+        return new StargateScreenHandler(syncId, inv, this.getPos());
     }
 }
