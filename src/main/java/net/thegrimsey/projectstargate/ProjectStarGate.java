@@ -27,7 +27,6 @@ public class ProjectStarGate implements ModInitializer {
     public void onInitialize() {
         ProjectSGBlocks.registerBlocks();
         ProjectSGItems.registerItems();
-
         ProjectSGFeatures.registerFeatures();
 
     }

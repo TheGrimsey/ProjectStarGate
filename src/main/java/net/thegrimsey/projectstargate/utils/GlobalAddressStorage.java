@@ -2,21 +2,18 @@ package net.thegrimsey.projectstargate.utils;
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.PersistentState;
-import net.minecraft.world.World;
 
 import java.util.HashMap;
 import java.util.HashSet;
 
 public class GlobalAddressStorage extends PersistentState {
     // Set containing all known StarGate addresses and the positions of all SGBaseBlocks with that address.
-    HashMap<String, HashSet<BlockPos>> worldAddresses;
+    HashMap<Long, HashSet<BlockPos>> worldAddresses;
 
     // All addresses which are currently connected. Only one gate from each address can be dialed at the time.
-    HashSet<String> lockedAddresses;
+    HashSet<Long> lockedAddresses;
 
     public GlobalAddressStorage() {
         worldAddresses = new HashMap<>();
@@ -46,7 +43,7 @@ public class GlobalAddressStorage extends PersistentState {
                 addresses.add(new BlockPos(X, Y, Z));
             }));
 
-            globalAddressStorage.worldAddresses.put(s, addresses);
+            globalAddressStorage.worldAddresses.put(Long.parseLong(s), addresses);
         }));
 
         return globalAddressStorage;
@@ -56,7 +53,7 @@ public class GlobalAddressStorage extends PersistentState {
     public NbtCompound writeNbt(NbtCompound tag) {
         NbtCompound addresses = new NbtCompound();
 
-        worldAddresses.forEach((s, blockPosSet) -> {
+        worldAddresses.forEach((addressLong, blockPosSet) -> {
             NbtCompound address = new NbtCompound();
             blockPosSet.forEach(blockPos -> {
                 NbtCompound positionTag = new NbtCompound();
@@ -67,7 +64,7 @@ public class GlobalAddressStorage extends PersistentState {
 
                 address.put(String.valueOf(address.getKeys().size()), positionTag);
             });
-            addresses.put(s, address);
+            addresses.put(Long.toString(addressLong), address);
         });
 
         tag.put("addresses", addresses);
@@ -75,7 +72,7 @@ public class GlobalAddressStorage extends PersistentState {
         return tag;
     }
 
-    public void addAddress(String address, BlockPos position) {
+    public void addAddress(long address, BlockPos position) {
         if (!worldAddresses.containsKey(address))
             worldAddresses.put(address, new HashSet<>(1));
         worldAddresses.get(address).add(position);
@@ -83,7 +80,7 @@ public class GlobalAddressStorage extends PersistentState {
         markDirty();
     }
 
-    public void removeAddress(String address, BlockPos position) {
+    public void removeAddress(long address, BlockPos position) {
         if (!worldAddresses.containsKey(address))
             return;
 
@@ -93,23 +90,23 @@ public class GlobalAddressStorage extends PersistentState {
         markDirty();
     }
 
-    public boolean hasAddress(String address) {
+    public boolean hasAddress(long address) {
         return worldAddresses.containsKey(address) && !worldAddresses.get(address).isEmpty();
     }
 
-    public BlockPos getPosFromAddress(String address) {
+    public BlockPos getPosFromAddress(long address) {
         return (BlockPos) worldAddresses.get(address).toArray()[0];
     }
 
-    public boolean isAddressLocked(String address) {
+    public boolean isAddressLocked(long address) {
         return lockedAddresses.contains(address);
     }
 
-    public void lockAddress(String address) {
+    public void lockAddress(long address) {
         lockedAddresses.add(address);
     }
 
-    public void unlockAddress(String address) {
+    public void unlockAddress(long address) {
         lockedAddresses.remove(address);
     }
 }

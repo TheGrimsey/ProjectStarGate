@@ -1,7 +1,12 @@
 package net.thegrimsey.projectstargate.utils;
 
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.RegistryKey;
+import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 
 public class AddressingUtil {
@@ -19,52 +24,114 @@ public class AddressingUtil {
 
     static final int GLYPH_COUNT = 36;
     static final int GLYPH_PER_COORDINATE = 4;
+    static final int ADDRESS_LENGTH = GLYPH_PER_COORDINATE * 2 + 1; // 9
 
-    public static final String GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    static final String GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-    public static @NotNull String GetAddressForLocation(@NotNull ServerWorld world, @NotNull BlockPos pos) {
-        StringBuilder address = new StringBuilder(GLYPH_PER_COORDINATE + GLYPH_PER_COORDINATE + 1);
+    public static long GetAddressForLocation(@NotNull ServerWorld world, @NotNull BlockPos pos) {
+        byte[] address = new byte[ADDRESS_LENGTH];
+        //StringBuilder address = new StringBuilder(GLYPH_PER_COORDINATE + GLYPH_PER_COORDINATE + 1);
 
-        String xAddress = ConvertCoordinateToAddress(pos.getX());
-        String zAddress = ConvertCoordinateToAddress(pos.getZ());
+        byte[] xAddress = ConvertCoordinateToAddress(pos.getX());
+        byte[] zAddress = ConvertCoordinateToAddress(pos.getZ());
 
-        for (int i = 0; i < GLYPH_PER_COORDINATE; i++)
-            address.append(xAddress.charAt(i)).append(zAddress.charAt(i));
+        // Manually unrolled loop for interleaving coordinates.
+        address[0] = xAddress[0];
+        address[1] = zAddress[0];
+        address[2] = xAddress[1];
+        address[3] = zAddress[1];
+        address[4] = xAddress[2];
+        address[5] = zAddress[2];
+        address[6] = xAddress[3];
+        address[7] = zAddress[3];
 
         // Get dimension id.
         try {
             byte dimensionGlyph = DimensionGlyphStorage.getInstance(world.getServer()).GetOrCreateDimensionGlyph(world.getRegistryKey().getValue().toString());
-            address.append(GLYPHS.charAt(dimensionGlyph));
+            address[8] = dimensionGlyph;
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return address.toString();
+        return ConvertAddressBytesToLong(address);
     }
 
     /*
      *   Converts a coordinate to a 4 glyph long sequence.
      *   Going from most significant to least significant glyph.
      */
-    static String ConvertCoordinateToAddress(int coordinate) {
+    private static byte[] ConvertCoordinateToAddress(int coordinate) {
         // Translate coordinate to region coordinate.
         coordinate = (coordinate + WORLD_WIDTH / 2) / REGION_WIDTH;
 
-        StringBuilder result = new StringBuilder(GLYPH_PER_COORDINATE);
+        byte[] result = new byte[GLYPH_PER_COORDINATE];
 
         // Convert to base GLYPH_COUNT and get corresponding glyph.
+        int i = 0;
         while (coordinate > GLYPH_COUNT - 1) {
-            int remainder = coordinate % GLYPH_COUNT;
+            result[i] = (byte) (coordinate % GLYPH_COUNT);
             coordinate = coordinate / GLYPH_COUNT;
 
-            result.append(GLYPHS.charAt(remainder));
+            i++;
         }
-        result.append(GLYPHS.charAt(coordinate));
+        result[i] = (byte) coordinate;
 
-        // Pad remaining address length.
-        while (result.length() < GLYPH_PER_COORDINATE)
-            result.append(GLYPHS.charAt(0));
+        return result;
+    }
 
-        return result.toString();
+    public static World GetWorldFromDimensionGlyph(@NotNull MinecraftServer server, byte glyph)
+    {
+        Identifier dimensionId = new Identifier(DimensionGlyphStorage.getInstance(server).GetDimensionIdentifierFromGlyph(glyph));
+
+        return server.getWorld(RegistryKey.of(Registry.WORLD_KEY,dimensionId));
+    }
+
+    public static long ConvertAddressStringToLong(String address)
+    {
+        byte[] tempBytes = new byte[ADDRESS_LENGTH];
+        char[] tempChars = address.toCharArray();
+        for(int i = 0; i < tempChars.length && i < ADDRESS_LENGTH; i++)
+        {
+            tempBytes[i] = (byte) GLYPHS.indexOf(tempChars[i]);
+        }
+
+        return ConvertAddressBytesToLong(tempBytes);
+    }
+
+    public static long ConvertAddressBytesToLong(byte[] address)
+    {
+        long result = 0;
+
+        for(int i = ADDRESS_LENGTH-1; i >= 0; i--)
+        {
+            result += address[i] * Math.pow(GLYPH_COUNT, i);
+        }
+
+        return result;
+    }
+
+    public static byte[] ConvertLongAddressToByteArray(long address)
+    {
+        byte[] result = new byte[ADDRESS_LENGTH];
+
+        for(int i = 0; i < ADDRESS_LENGTH; i++)
+        {
+            result[i] = (byte) (address % GLYPH_COUNT);
+            address /= GLYPH_COUNT;
+        }
+
+        return result;
+    }
+
+    public static String ConvertLongToString(long address)
+    {
+        byte[] byteAddress = ConvertLongAddressToByteArray(address);
+
+        StringBuilder stringBuilder = new StringBuilder(ADDRESS_LENGTH);
+        for(byte glyph : byteAddress)
+        {
+            stringBuilder.append(GLYPHS.charAt(glyph));
+        }
+        return stringBuilder.toString();
     }
 }

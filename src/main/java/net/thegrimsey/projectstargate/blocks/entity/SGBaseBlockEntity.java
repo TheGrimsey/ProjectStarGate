@@ -5,7 +5,6 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.block.entity.BlockEntityClientSerializable;
 import net.fabricmc.fabric.api.dimension.v1.FabricDimensions;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
-import net.fabricmc.fabric.impl.biome.modification.BuiltInRegistryKeys;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.LivingEntity;
@@ -19,35 +18,31 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableText;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
 import net.thegrimsey.projectstargate.screens.StargateScreenHandler;
 import net.thegrimsey.projectstargate.utils.AddressingUtil;
-import net.thegrimsey.projectstargate.utils.DimensionGlyphStorage;
 import net.thegrimsey.projectstargate.utils.GlobalAddressStorage;
 import net.thegrimsey.projectstargate.utils.StarGateState;
-import org.apache.logging.log4j.core.jmx.Server;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
 
 public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientSerializable, ExtendedScreenHandlerFactory {
-    public String address = "";
+    public long address = -1;
     public StarGateState gateState = StarGateState.IDLE;
-    String remoteAddress = "";
     public Direction facing = Direction.NORTH;
     boolean merged = false;
+
     boolean isRemote = false;
+    long remoteAddress = -1;
 
     // Runtime values. These are not saved.
     float ringRotation = 0f;
@@ -84,13 +79,13 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     public NbtCompound writeNbt(NbtCompound tag) {
         super.writeNbt(tag);
 
-        tag.putString("address", address);
+        tag.putLong("address", address);
         tag.putBoolean("merged", merged);
         tag.putByte("facing", (byte) facing.getId());
 
         tag.putByte("state", StarGateState.toID(gateState));
         if (gateState != StarGateState.IDLE) {
-            tag.putString("remoteAddress", remoteAddress);
+            tag.putLong("remoteAddress", remoteAddress);
             tag.putBoolean("isRemote", isRemote);
         }
         return tag;
@@ -100,13 +95,13 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     public void readNbt(NbtCompound tag) {
         super.readNbt(tag);
 
-        address = tag.getString("address");
+        address = tag.getLong("address");
         merged = tag.getBoolean("merged");
         facing = Direction.byId(tag.getByte("facing"));
 
         gateState = StarGateState.fromID(tag.getByte("state"));
         if (gateState != StarGateState.IDLE) {
-            remoteAddress = tag.getString("remoteAddress");
+            remoteAddress = tag.getLong("remoteAddress");
             isRemote = tag.getBoolean("isRemote");
 
             needsInitialization = true;
@@ -115,7 +110,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
     @Override
     public NbtCompound toClientTag(NbtCompound tag) {
-        tag.putString("address", address);
         tag.putBoolean("merged", merged);
         tag.putByte("facing", (byte) facing.getId());
 
@@ -128,7 +122,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
     @Override
     public void fromClientTag(NbtCompound tag) {
-        address = tag.getString("address");
         merged = tag.getBoolean("merged");
         facing = Direction.byId(tag.getByte("facing"));
 
@@ -287,8 +280,8 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         }
     }
 
-    public void dial(String dialingAddress) {
-        if (dialingAddress.equals(address)) {
+    public void dial(long dialingAddress) {
+        if (dialingAddress == address) {
             System.out.println("Dialing failed. Can't dial self: " + address);
             return;
         }
@@ -380,12 +373,12 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
         remoteGate.isRemote = false;
         remoteGate.remoteGate = null;
-        remoteGate.remoteAddress = "";
+        remoteGate.remoteAddress = -1;
         remoteGate.engagedChevrons = 0;
         remoteGate.setState(StarGateState.IDLE);
 
         remoteGate = null;
-        remoteAddress = "";
+        remoteAddress = -1;
         engagedChevrons = 0;
         setState(StarGateState.IDLE);
 
@@ -397,21 +390,16 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         ticksInState = 0;
     }
 
-    Pair<BlockPos,World> getPosAndWorldForAddress(String address) {
+    Pair<BlockPos,World> getPosAndWorldForAddress(long address) {
         GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance(world.getServer());
         if (!globalAddressStorage.hasAddress(address))
             return null;
 
         MinecraftServer server = world.getServer();
         BlockPos targetPos = globalAddressStorage.getPosFromAddress(address);
+        byte dimensionGlyph = (byte) (address / 36 / 36 / 36 / 36 / 36 / 36 / 36 / 36); // This is kinda cursed.
 
-        // TODO Clean up hack before release. This is overly complicted but I am running with it right now.
-        char dimensionGlyph = address.charAt(address.length()-1);
-        byte dimensionByte = (byte) AddressingUtil.GLYPHS.indexOf(dimensionGlyph);
-        Identifier dimensionId = new Identifier(DimensionGlyphStorage.getInstance(server).GetDimensionIdentifierFromGlyph(dimensionByte));
-        World targetWorld = server.getWorld(RegistryKey.of(Registry.WORLD_KEY,dimensionId));
-
-        return new Pair<>(targetPos, targetWorld);
+        return new Pair<>(targetPos, AddressingUtil.GetWorldFromDimensionGlyph(server, dimensionGlyph));
     }
 
     void setChunkLoading(Pair<BlockPos, World> target, boolean load) {
@@ -421,7 +409,10 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     @Override
     public void writeScreenOpeningData(ServerPlayerEntity player, PacketByteBuf buf) {
         buf.writeBlockPos(getPos());
-        buf.writeString(address);
+        buf.writeLong(address);
+        // From a networking perspective sending as a string is terrible. We only have 36 glyphs, they could fit in a byte each but java strings are 2 bytes...
+        // TODO Look into if we can store glyphs as just a byte array instead of string.
+        //  (saves having to convert it & saves a tiny bit of memory, a bit of overhead in displaying it). We'd have to
     }
 
     @Override
