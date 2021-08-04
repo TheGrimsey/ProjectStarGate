@@ -70,7 +70,7 @@ public class StarGateRenderer<T extends BlockEntity> implements BlockEntityRende
         matrices.translate(0.5, 2.5, 0.5);
 
         //Rotate based on facing.
-        switch (entity.facing) {
+        switch (entity.getFacing()) {
             case SOUTH:
                 matrices.multiply(new Quaternion(0.f, 180.f, 0.f, true));
                 break;
@@ -228,16 +228,16 @@ public class StarGateRenderer<T extends BlockEntity> implements BlockEntityRende
         vertex(matrix4f, vertexConsumer, xOuter, -yOuter, zOut, 0, 0, 1, 4, 0, overlay, light);
 
         // Top Left
-        vertex(matrix4f, vertexConsumer, xOuter, yOuter, zOut, 0, 0, 1, 96, 0, overlay, light);
-        vertex(matrix4f, vertexConsumer, xOuter, yOuter - w2, zOut, 0, 0, 1, 96, 0, overlay, light);
-        vertex(matrix4f, vertexConsumer, xOuter, yOuter - w2, zFlat, 0, 0, 1, 96, 0, overlay, light);
-        vertex(matrix4f, vertexConsumer, xOuter, yOuter, zFlat, 0, 0, 1, 104, 0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter, zOut, 0, 0, 1,          96,  8, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter - w2, zOut, 0, 0, 1,  104,  8, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter - w2, zFlat, 0, 0, 1, 104,  0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, yOuter, zFlat, 0, 0, 1,         96, 0, overlay, light);
 
         // Top Right
-        vertex(matrix4f, vertexConsumer, xOuter, -yOuter, zOut, 0, 0, 1, 96, 0, overlay, light);
-        vertex(matrix4f, vertexConsumer, xOuter, -yOuter, zFlat, 0, 0, 1, 96, 8, overlay, light);
-        vertex(matrix4f, vertexConsumer, xOuter, -yOuter + w2, zFlat, 0, 0, 1, 104, 8, overlay, light);
-        vertex(matrix4f, vertexConsumer, xOuter, -yOuter + w2, zOut, 0, 0, 1, 104, 0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter, zOut, 0, 0, 1,          120, 8, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter, zFlat, 0, 0, 1,         120, 0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter + w2, zFlat, 0, 0, 1, 128, 0, overlay, light);
+        vertex(matrix4f, vertexConsumer, xOuter, -yOuter + w2, zOut, 0, 0, 1,  128, 8, overlay, light);
 
         // Top Middle (Light up part)
         vertex(matrix4f, vertexConsumer, xOuter, yOuter - w2, zFlat, 0, 0, 1, 64, 0, overlay, light, engagedMultiplier, engagedMultiplier, engagedMultiplier);

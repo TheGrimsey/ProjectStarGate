@@ -26,6 +26,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
+import net.thegrimsey.projectstargate.blocks.SGBaseBlock;
 import net.thegrimsey.projectstargate.screens.StargateScreenHandler;
 import net.thegrimsey.projectstargate.utils.AddressingUtil;
 import net.thegrimsey.projectstargate.utils.GlobalAddressStorage;
@@ -37,8 +38,7 @@ import java.util.Objects;
 
 public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientSerializable, ExtendedScreenHandlerFactory {
     public long address = -1;
-    public StarGateState gateState = StarGateState.IDLE;
-    public Direction facing = Direction.NORTH;
+    StarGateState gateState = StarGateState.IDLE;
     boolean merged = false;
 
     boolean isRemote = false;
@@ -51,7 +51,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
     SGBaseBlockEntity remoteGate;
     boolean needsInitialization = false;
-
     Box cachedBounds = null;
 
     // Client visuals.
@@ -81,7 +80,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
         tag.putLong("address", address);
         tag.putBoolean("merged", merged);
-        tag.putByte("facing", (byte) facing.getId());
 
         tag.putByte("state", StarGateState.toID(gateState));
         if (gateState != StarGateState.IDLE) {
@@ -97,7 +95,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
         address = tag.getLong("address");
         merged = tag.getBoolean("merged");
-        facing = Direction.byId(tag.getByte("facing"));
 
         gateState = StarGateState.fromID(tag.getByte("state"));
         if (gateState != StarGateState.IDLE) {
@@ -111,7 +108,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     @Override
     public NbtCompound toClientTag(NbtCompound tag) {
         tag.putBoolean("merged", merged);
-        tag.putByte("facing", (byte) facing.getId());
 
         tag.putByte("state", StarGateState.toID(gateState));
         tag.putFloat("ringRotation", ringRotation);
@@ -123,7 +119,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     @Override
     public void fromClientTag(NbtCompound tag) {
         merged = tag.getBoolean("merged");
-        facing = Direction.byId(tag.getByte("facing"));
 
         gateState = StarGateState.fromID(tag.getByte("state"));
         ringRotation = tag.getFloat("ringRotation");
@@ -247,7 +242,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
     Box getTeleportBounds() {
         float minY = getPos().getY() + 1, maxY = getPos().getY() + 4;
-        boolean onZ = facing == Direction.WEST || facing == Direction.EAST;
+        boolean onZ = getFacing() == Direction.WEST || getFacing() == Direction.EAST;
         float minX = getPos().getX() - (onZ ? 0 : 1), maxX = getPos().getX() + (onZ ? 0 : 1);
         float minZ = getPos().getZ() - (onZ ? 1 : 0), maxZ = getPos().getZ() + (onZ ? 1 : 0);
 
@@ -269,8 +264,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
             if (merged) {
                 globalAddressStorage.addAddress(address, getPos());
-
-
             } else {
                 globalAddressStorage.removeAddress(address, getPos());
 
@@ -285,7 +278,10 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
             System.out.println("Dialing failed. Can't dial self: " + address);
             return;
         }
-        // TODO Check is connected & if we can disconnect before dialing.
+
+        // If we are connected/dialing try to disconnect. If disconnect fails return.
+        if(gateState != StarGateState.IDLE && !disconnect(false))
+            return;
 
         // Check if homeAddress is already locked & if dialingAddress is as well.
         GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance(world.getServer());
@@ -301,14 +297,14 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
             return;
 
         // Chunk loading.
-        setChunkLoading(target, true);
-        setChunkLoading(new Pair<>(pos, world), true);
+        setChunkLoading(target.getLeft(), target.getRight(), true);
+        setChunkLoading(pos, world, true);
 
         // Get target block entity.
         BlockEntity remoteBlockEntity = target.getRight().getBlockEntity(target.getLeft());
         if (!(remoteBlockEntity instanceof SGBaseBlockEntity)) {
-            setChunkLoading(target, false);
-            setChunkLoading(new Pair<>(pos, world), false);
+            setChunkLoading(target.getLeft(), target.getRight(), false);
+            setChunkLoading(pos, world, false);
             GlobalAddressStorage.getInstance(world.getServer()).removeAddress(dialingAddress, target.getLeft());
             return;
         }
@@ -316,10 +312,10 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         remoteGate = (SGBaseBlockEntity) remoteBlockEntity;
         remoteGate.isRemote = true;
         remoteGate.remoteAddress = address;
-        remoteGate.setState(StarGateState.DIALING);
+        remoteGate.changeState(StarGateState.DIALING);
 
         remoteAddress = dialingAddress;
-        setState(StarGateState.DIALING);
+        changeState(StarGateState.DIALING);
 
         globalAddressStorage.lockAddress(address);
         globalAddressStorage.lockAddress(remoteAddress);
@@ -341,25 +337,26 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
             return;
         }
 
-        setState(StarGateState.CONNECTED);
+        changeState(StarGateState.CONNECTED);
         engagedChevrons = 0b1_1111_1111;
         sync();
         markDirty();
 
         remoteGate = (SGBaseBlockEntity) remoteBlockEntity;
-        remoteGate.setState(StarGateState.CONNECTED);
+        remoteGate.changeState(StarGateState.CONNECTED);
         remoteGate.engagedChevrons = engagedChevrons;
         remoteGate.sync();
         remoteGate.markDirty();
     }
 
-    public void disconnect(boolean force) {
+    // Returns true if we successfully disconnected.
+    public boolean disconnect(boolean force) {
         if (gateState != StarGateState.CONNECTED)
-            return;
+            return true;
 
         if (isRemote && !force) {
             System.out.println("Can't disconnect if remote gate. Only dialing gate can disconnect.");
-            return;
+            return false;
         }
 
         //Unlock addresses.
@@ -368,24 +365,25 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         globalAddressStorage.unlockAddress(remoteAddress);
 
         // Stop chunk loading
-        setChunkLoading(new Pair<>(pos, world), false);
-        setChunkLoading(new Pair<>(remoteGate.pos, remoteGate.world), false);
+        setChunkLoading(pos, world, false);
+        setChunkLoading(remoteGate.pos, remoteGate.world, false);
 
         remoteGate.isRemote = false;
         remoteGate.remoteGate = null;
         remoteGate.remoteAddress = -1;
         remoteGate.engagedChevrons = 0;
-        remoteGate.setState(StarGateState.IDLE);
+        remoteGate.changeState(StarGateState.IDLE);
 
         remoteGate = null;
         remoteAddress = -1;
         engagedChevrons = 0;
-        setState(StarGateState.IDLE);
+        changeState(StarGateState.IDLE);
 
         sync();
+        return true;
     }
 
-    private void setState(StarGateState newState) {
+    private void changeState(StarGateState newState) {
         gateState = newState;
         ticksInState = 0;
     }
@@ -402,17 +400,14 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         return new Pair<>(targetPos, AddressingUtil.GetWorldFromDimensionGlyph(server, dimensionGlyph));
     }
 
-    void setChunkLoading(Pair<BlockPos, World> target, boolean load) {
-        ((ServerWorld) target.getRight()).setChunkForced(target.getLeft().getX() >> 4, target.getLeft().getZ() >> 4, load);
+    void setChunkLoading(BlockPos pos, World world, boolean load) {
+        ((ServerWorld) world).setChunkForced(pos.getX() >> 4, pos.getZ() >> 4, load);
     }
 
     @Override
     public void writeScreenOpeningData(ServerPlayerEntity player, PacketByteBuf buf) {
         buf.writeBlockPos(getPos());
         buf.writeLong(address);
-        // From a networking perspective sending as a string is terrible. We only have 36 glyphs, they could fit in a byte each but java strings are 2 bytes...
-        // TODO Look into if we can store glyphs as just a byte array instead of string.
-        //  (saves having to convert it & saves a tiny bit of memory, a bit of overhead in displaying it). We'd have to
     }
 
     @Override
@@ -424,5 +419,9 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     @Override
     public ScreenHandler createMenu(int syncId, PlayerInventory inv, PlayerEntity player) {
         return new StargateScreenHandler(syncId, inv, this.getPos());
+    }
+
+    public Direction getFacing() {
+        return getCachedState().get(SGBaseBlock.FACING);
     }
 }

@@ -49,7 +49,6 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
 
         if (world.getBlockEntity(pos) instanceof SGBaseBlockEntity blockEntity) {
             blockEntity.address = AddressingUtil.GetAddressForLocation((ServerWorld) world, pos);
-            blockEntity.facing = state.get(FACING);
         }
     }
 
@@ -98,7 +97,7 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
     @Override
     boolean checkMerge(World world, BlockState state, BlockPos pos) {
 
-        // The base block is at the bottom-center of the stargate. Our facing matters so we can quickly figure out where the bottom-left of the structure should be and go from there.
+        // The base block is at the bottom-center of the stargate. Our facing matters, so we can quickly figure out where the bottom-left of the structure should be and go from there.
         int bX = pos.getX(), bY = pos.getY(), bZ = pos.getZ();
         boolean onZ = false;
 
