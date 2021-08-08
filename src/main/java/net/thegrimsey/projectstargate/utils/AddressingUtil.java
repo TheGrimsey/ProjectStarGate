@@ -24,7 +24,7 @@ public class AddressingUtil {
 
     static final int GLYPH_COUNT = 36;
     static final int GLYPH_PER_COORDINATE = 4;
-    static final int ADDRESS_LENGTH = GLYPH_PER_COORDINATE * 2 + 1; // 9
+    public static final int ADDRESS_LENGTH = GLYPH_PER_COORDINATE * 2 + 1; // 9
 
     static final String GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 

@@ -17,6 +17,7 @@ import net.minecraft.text.TranslatableText;
 import net.minecraft.util.math.BlockPos;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
 import net.thegrimsey.projectstargate.screens.DHDScreenHandler;
+import net.thegrimsey.projectstargate.utils.DimensionGlyphStorage;
 import org.jetbrains.annotations.Nullable;
 
 public class DHDBlockEntity extends BlockEntity implements BlockEntityClientSerializable, ExtendedScreenHandlerFactory {
@@ -68,6 +69,15 @@ public class DHDBlockEntity extends BlockEntity implements BlockEntityClientSeri
     @Override
     public void writeScreenOpeningData(ServerPlayerEntity player, PacketByteBuf buf) {
         buf.writeBlockPos(getPos());
+
+        byte dimension = -1;
+        try {
+            dimension = DimensionGlyphStorage.getInstance(player.getServer()).GetOrCreateDimensionGlyph(player.getServerWorld().getRegistryKey().getValue().toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        buf.writeByte(dimension);
     }
 
     @Override
