@@ -29,5 +29,6 @@ public class ProjectStarGate implements ModInitializer {
         ProjectSGItems.registerItems();
         ProjectSGFeatures.registerFeatures();
 
+        ProjectSGNetworking.registerNetworking();
     }
 }

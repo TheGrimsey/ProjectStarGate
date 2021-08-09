@@ -22,11 +22,11 @@ public class AddressingUtil {
     static final int REGION_WIDTH = 48;
     static final int WORLD_WIDTH = 60000000;
 
-    static final int GLYPH_COUNT = 36;
     static final int GLYPH_PER_COORDINATE = 4;
+    public static final int GLYPH_COUNT = 36;
     public static final int ADDRESS_LENGTH = GLYPH_PER_COORDINATE * 2 + 1; // 9
 
-    static final String GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    public static final String GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
     public static long GetAddressForLocation(@NotNull ServerWorld world, @NotNull BlockPos pos) {
         byte[] address = new byte[ADDRESS_LENGTH];

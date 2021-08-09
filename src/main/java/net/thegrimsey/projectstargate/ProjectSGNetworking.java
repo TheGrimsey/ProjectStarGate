@@ -22,12 +22,12 @@ public class ProjectSGNetworking {
     }
 
     @Environment(EnvType.CLIENT)
-    public static void sendDialDHDPacket(BlockPos pos, byte[] address)
+    public static void sendDialDHDPacket(BlockPos pos, long address)
     {
         PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
 
         buf.writeBlockPos(pos);
-        buf.writeByteArray(address);
+        buf.writeLong(address);
 
         ClientPlayNetworking.send(DIAL_DHD, buf);
     }

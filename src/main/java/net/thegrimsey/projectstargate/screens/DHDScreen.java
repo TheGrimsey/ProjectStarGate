@@ -8,6 +8,7 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.thegrimsey.projectstargate.ProjectStarGate;
+import net.thegrimsey.projectstargate.utils.AddressingUtil;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL11;
 
@@ -23,6 +24,8 @@ public class DHDScreen extends HandledScreen<DHDScreenHandler> {
 
     @Override
     protected void drawBackground(MatrixStack matrices, float delta, int mouseX, int mouseY) {
+
+        // Draw background / main console.
         RenderSystem.setShaderTexture(0, DHD_TEXTURE);
         RenderSystem.texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
         RenderSystem.texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
@@ -33,11 +36,12 @@ public class DHDScreen extends HandledScreen<DHDScreenHandler> {
         RenderSystem.setShaderTexture(0, CENTER_BUTTON_TEXTURE);
         RenderSystem.enableBlend();
         RenderSystem.blendFunc(GlStateManager.SrcFactor.SRC_ALPHA, GlStateManager.DstFactor.ONE_MINUS_SRC_ALPHA);
-        //RenderSystem.setShaderColor(0.2f, 0.2f, 0.2f, 1.0f);
+        RenderSystem.setShaderColor(0.2f, 0.2f, 0.2f, 1.0f);
 
         double rx = this.backgroundWidth * 48 / 512.0;
+        double ry = this.backgroundHeight * 48 / 256.0;
 
-        drawTexture(matrices, (int)(width/2 - rx), (int)(y + backgroundHeight/2) - 32, 64, 0, 64, 64, 128, 64);
+        drawTexture(matrices, (int)(width/2 - rx), (int)(y + backgroundHeight/2 - ry - 7), (int)(2 * rx), 48, 64, 0, 64, 64, 128, 64);
     }
 
     @Override
@@ -52,28 +56,29 @@ public class DHDScreen extends HandledScreen<DHDScreenHandler> {
 
     @Override
     protected void init() {
-        super.init();
-        y = height - backgroundHeight - 4;
+        x = (width - backgroundWidth) / 2;
+        y = height - backgroundHeight;
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         switch (keyCode) {
             case GLFW.GLFW_KEY_BACKSPACE:
-                break;
+                handler.eraseGlyph();
+                return true;
 
             case GLFW.GLFW_KEY_ENTER:
             case GLFW.GLFW_KEY_KP_ENTER:
-                break;
+                handler.dialGate();
+                return true;
+
+            case GLFW.GLFW_KEY_ESCAPE:
+                onClose();
+                return true;
 
             default:
-                break;
+                handler.dialGlyph((byte) AddressingUtil.GLYPHS.indexOf(keyCode));
+                return true;
         }
-
-        return super.keyPressed(keyCode, scanCode, modifiers);
-    }
-
-    void dial() {
-        
     }
 }
