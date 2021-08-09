@@ -14,7 +14,6 @@ public class ProjectSGNetworking {
     private static final Identifier DIAL_DHD = new Identifier(ProjectStarGate.MODID, "dial_dhd_packet");
     private static final DialDHDChannelHandler DIAL_DHD_CHANNEL_HANDLER = new DialDHDChannelHandler();
 
-
     public static void registerNetworking()
     {
         // Dialing DHD packet.
@@ -22,11 +21,11 @@ public class ProjectSGNetworking {
     }
 
     @Environment(EnvType.CLIENT)
-    public static void sendDialDHDPacket(BlockPos pos, long address)
+    public static void sendDialDHDPacket(BlockPos dhdPos, long address)
     {
         PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
 
-        buf.writeBlockPos(pos);
+        buf.writeBlockPos(dhdPos);
         buf.writeLong(address);
 
         ClientPlayNetworking.send(DIAL_DHD, buf);

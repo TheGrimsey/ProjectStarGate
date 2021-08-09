@@ -8,6 +8,7 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.thegrimsey.projectstargate.ProjectStarGate;
+import net.thegrimsey.projectstargate.blocks.entity.DHDBlockEntity;
 import net.thegrimsey.projectstargate.utils.AddressingUtil;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL11;
@@ -15,6 +16,8 @@ import org.lwjgl.opengl.GL11;
 public class DHDScreen extends HandledScreen<DHDScreenHandler> {
     private static final Identifier DHD_TEXTURE = new Identifier(ProjectStarGate.MODID, "textures/gui/dhd_gui.png");
     private static final Identifier CENTER_BUTTON_TEXTURE = new Identifier(ProjectStarGate.MODID, "textures/gui/dhd_centre.png");
+
+    int buttonX, buttonY, buttonWidth, buttonHeight;
 
     public DHDScreen(DHDScreenHandler handler, PlayerInventory inventory, Text title) {
         super(handler, inventory, title);
@@ -24,6 +27,8 @@ public class DHDScreen extends HandledScreen<DHDScreenHandler> {
 
     @Override
     protected void drawBackground(MatrixStack matrices, float delta, int mouseX, int mouseY) {
+        DHDBlockEntity dhdBlockEntity = handler.getDHD();
+        boolean isConnected = dhdBlockEntity.hasGate() && dhdBlockEntity.getGate().isConnected();
 
         // Draw background / main console.
         RenderSystem.setShaderTexture(0, DHD_TEXTURE);
@@ -36,12 +41,28 @@ public class DHDScreen extends HandledScreen<DHDScreenHandler> {
         RenderSystem.setShaderTexture(0, CENTER_BUTTON_TEXTURE);
         RenderSystem.enableBlend();
         RenderSystem.blendFunc(GlStateManager.SrcFactor.SRC_ALPHA, GlStateManager.DstFactor.ONE_MINUS_SRC_ALPHA);
-        RenderSystem.setShaderColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-        double rx = this.backgroundWidth * 48 / 512.0;
-        double ry = this.backgroundHeight * 48 / 256.0;
+        if(dhdBlockEntity.hasGate() && !dhdBlockEntity.getGate().notMerged())
+        {
+            if(isConnected)
+                RenderSystem.setShaderColor(1.0f, 0.5f, 0.0f, 1.0f);
+            else
+                RenderSystem.setShaderColor(0.5f, 0.25f, 0.0f, 1.0f);
+        }
+        else
+            RenderSystem.setShaderColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-        drawTexture(matrices, (int)(width/2 - rx), (int)(y + backgroundHeight/2 - ry - 7), (int)(2 * rx), 48, 64, 0, 64, 64, 128, 64);
+        drawTexture(matrices, buttonX, buttonY, buttonWidth, buttonHeight, 64, 0, 64, 64, 128, 64);
+
+        // Draw light up outline if connected.
+        if(isConnected)
+        {
+            RenderSystem.blendFunc(GL11.GL_ONE, GL11.GL_ONE);
+            int d = 5;
+            drawTexture(matrices, buttonX - d, buttonY - d, buttonWidth + 2*d, buttonHeight + d, 0, 0, 64, 64, 128, 64);
+            drawTexture(matrices, buttonX - d, buttonY + 11, buttonWidth + 2*d, (int) (0.5 * (buttonHeight + d)), 0, 0, 64, 64, 128, 64);
+        }
+
     }
 
     @Override
@@ -58,6 +79,13 @@ public class DHDScreen extends HandledScreen<DHDScreenHandler> {
     protected void init() {
         x = (width - backgroundWidth) / 2;
         y = height - backgroundHeight;
+
+        double rx = this.backgroundWidth * 48 / 512.0;
+        double ry = this.backgroundHeight * 48 / 256.0;
+        buttonX = (int)(width/2 - rx);
+        buttonY = (int)(y + backgroundHeight/2 - ry - 7);
+        buttonWidth = (int)(2 * rx);
+        buttonHeight = 48;
     }
 
     @Override

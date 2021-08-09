@@ -119,7 +119,7 @@ public class StarGateRenderer<T extends BlockEntity> implements BlockEntityRende
             matrices.push();
             matrices.multiply(new Quaternion(0, 0, 90f - (i - 4) * anglesBetweenChevrons, true));
 
-            renderChevron(entity.IsChevronEngaged(i), matrices, vertexConsumer, overlay, light);
+            renderChevron(entity.isChevronEngaged(i), matrices, vertexConsumer, overlay, light);
             matrices.pop();
         }
     }

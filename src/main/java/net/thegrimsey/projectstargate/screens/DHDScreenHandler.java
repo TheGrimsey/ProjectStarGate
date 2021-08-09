@@ -6,7 +6,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.network.PacketByteBuf;
-import net.minecraft.screen.ScreenHandler;
+import net.minecraft.screen.*;
 import net.minecraft.util.math.BlockPos;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
 import net.thegrimsey.projectstargate.ProjectSGNetworking;
@@ -17,6 +17,7 @@ import net.thegrimsey.projectstargate.utils.AddressingUtil;
 import java.util.Arrays;
 
 public class DHDScreenHandler extends ScreenHandler {
+    ScreenHandlerContext context;
     BlockPos dhdPos;
 
     @Environment(EnvType.CLIENT)
@@ -26,24 +27,27 @@ public class DHDScreenHandler extends ScreenHandler {
     @Environment(EnvType.CLIENT)
     int writeHead = 0;
 
+
     public DHDScreenHandler(int syncId, PlayerInventory playerInventory, PacketByteBuf buf) {
         super(ProjectStarGate.DHD_SCREENHANDLER, syncId);
         dhdPos = buf.readBlockPos();
         dimension = buf.readByte();
 
         Arrays.fill(writtenAddress, (byte) -1);
+
+        context = ScreenHandlerContext.create(playerInventory.player.world, dhdPos);
     }
 
     public DHDScreenHandler(int syncId, PlayerInventory playerInventory, DHDBlockEntity sourceDHD) {
         super(ProjectStarGate.DHD_SCREENHANDLER, syncId);
         this.dhdPos = sourceDHD.getPos();
+
+        context = ScreenHandlerContext.create(playerInventory.player.world, dhdPos);
     }
 
     @Override
     public boolean canUse(PlayerEntity player) {
-        BlockState blockState = player.world.getBlockState(dhdPos);
-
-        return blockState.isOf(ProjectSGBlocks.DHD_BLOCK);
+        return canUse(context, player, ProjectSGBlocks.DHD_BLOCK);
     }
 
     public void dialGlyph(byte glyph)
@@ -72,5 +76,15 @@ public class DHDScreenHandler extends ScreenHandler {
             writeHead--;
             writtenAddress[writeHead] = -1;
         }
+    }
+
+    public DHDBlockEntity getDHD()
+    {
+        return context.get((world, blockPos) -> {
+            if(world.getBlockEntity(blockPos) instanceof DHDBlockEntity dhdBlockEntity)
+                return dhdBlockEntity;
+
+            return null;
+        }, null);
     }
 }

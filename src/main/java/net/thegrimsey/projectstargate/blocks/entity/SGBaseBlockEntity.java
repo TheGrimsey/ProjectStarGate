@@ -125,7 +125,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         engagedChevrons = tag.getShort("engagedChevrons");
     }
 
-    public boolean IsChevronEngaged(int chevron) {
+    public boolean isChevronEngaged(int chevron) {
         return (engagedChevrons & (1 << chevron)) != 0;
     }
 
@@ -247,6 +247,14 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         float minZ = getPos().getZ() - (onZ ? 1 : 0), maxZ = getPos().getZ() + (onZ ? 1 : 0);
 
         return new Box(minX, minY, minZ, maxX, maxY, maxZ);
+    }
+
+    public Direction getFacing() {
+        return getCachedState().get(SGBaseBlock.FACING);
+    }
+
+    public boolean isConnected() {
+        return gateState != StarGateState.IDLE;
     }
 
     public boolean notMerged() {
@@ -419,9 +427,5 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     @Override
     public ScreenHandler createMenu(int syncId, PlayerInventory inv, PlayerEntity player) {
         return new StargateScreenHandler(syncId, inv, this.getPos());
-    }
-
-    public Direction getFacing() {
-        return getCachedState().get(SGBaseBlock.FACING);
     }
 }

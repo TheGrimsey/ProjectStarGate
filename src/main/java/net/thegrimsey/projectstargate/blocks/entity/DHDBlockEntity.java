@@ -23,9 +23,6 @@ import org.jetbrains.annotations.Nullable;
 public class DHDBlockEntity extends BlockEntity implements BlockEntityClientSerializable, ExtendedScreenHandlerFactory {
     BlockPos stargatePos = null;
 
-    @Environment(EnvType.CLIENT)
-    boolean hasGate = false;
-
     public DHDBlockEntity(BlockPos pos, BlockState state) {
         super(ProjectSGBlocks.DHD_BLOCKENTITY, pos, state);
     }
@@ -33,9 +30,9 @@ public class DHDBlockEntity extends BlockEntity implements BlockEntityClientSeri
     @Override
     public NbtCompound writeNbt(NbtCompound nbt) {
         if (stargatePos != null) {
-            nbt.putInt("X", stargatePos.getX());
-            nbt.putInt("Y", stargatePos.getY());
-            nbt.putInt("Z", stargatePos.getZ());
+            nbt.putInt("gateX", stargatePos.getX());
+            nbt.putInt("gateY", stargatePos.getY());
+            nbt.putInt("gateZ", stargatePos.getZ());
         }
 
         return super.writeNbt(nbt);
@@ -43,10 +40,10 @@ public class DHDBlockEntity extends BlockEntity implements BlockEntityClientSeri
 
     @Override
     public void readNbt(NbtCompound nbt) {
-        if (nbt.contains("X")) {
-            int x = nbt.getInt("X");
-            int y = nbt.getInt("Y");
-            int z = nbt.getInt("Z");
+        if (nbt.contains("gateX")) {
+            int x = nbt.getInt("gateX");
+            int y = nbt.getInt("gateY");
+            int z = nbt.getInt("gateZ");
 
             stargatePos = new BlockPos(x, y, z);
         }
@@ -56,12 +53,25 @@ public class DHDBlockEntity extends BlockEntity implements BlockEntityClientSeri
 
     @Override
     public void fromClientTag(NbtCompound tag) {
-        hasGate = tag.getBoolean("hasGate");
+
+        if (tag.contains("gateX")) {
+            int x = tag.getInt("gateX");
+            int y = tag.getInt("gateY");
+            int z = tag.getInt("gateZ");
+
+            stargatePos = new BlockPos(x, y, z);
+        }
+        else
+            stargatePos = null;
     }
 
     @Override
     public NbtCompound toClientTag(NbtCompound tag) {
-        tag.putBoolean("hasGate", stargatePos != null);
+        if (stargatePos != null) {
+            tag.putInt("gateX", stargatePos.getX());
+            tag.putInt("gateY", stargatePos.getY());
+            tag.putInt("gateZ", stargatePos.getZ());
+        }
 
         return tag;
     }
@@ -100,8 +110,15 @@ public class DHDBlockEntity extends BlockEntity implements BlockEntityClientSeri
         markDirty();
     }
 
-    @Environment(EnvType.CLIENT)
     public boolean hasGate() {
-        return hasGate;
+        return stargatePos != null;
+    }
+
+    public SGBaseBlockEntity getGate()
+    {
+        if(hasGate() && world.getBlockEntity(stargatePos) instanceof SGBaseBlockEntity sgBaseBlockEntity)
+            return sgBaseBlockEntity;
+
+        return null;
     }
 }

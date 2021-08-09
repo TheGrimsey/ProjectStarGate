@@ -17,8 +17,8 @@ import net.thegrimsey.projectstargate.blocks.entity.SGBaseBlockEntity;
 import org.jetbrains.annotations.Nullable;
 
 public class DHDBlock extends Block implements BlockEntityProvider {
-    final int GateXYSearchRadius = 5;
-    final int GateZSearchRadius = 1;
+    final int GateHorizontalSearch = 5;
+    final int GateVerticalSearchRadius = 1;
 
     public DHDBlock(Settings settings) {
         super(settings);
@@ -46,11 +46,14 @@ public class DHDBlock extends Block implements BlockEntityProvider {
     public void onPlaced(World world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack itemStack) {
         super.onPlaced(world, pos, state, placer, itemStack);
 
+        if(world.isClient)
+            return;
+
         // Check if there is a merged stargate nearby.
         BlockPos.Mutable bPos = new BlockPos.Mutable();
-        for (int x = -GateXYSearchRadius; x < GateZSearchRadius; x++) {
-            for (int z = -GateXYSearchRadius; z < GateXYSearchRadius; z++) {
-                for (int y = -GateZSearchRadius; y < GateZSearchRadius; y++) {
+        for (int x = -GateHorizontalSearch; x <= GateHorizontalSearch; x++) {
+            for (int z = -GateHorizontalSearch; z <= GateHorizontalSearch; z++) {
+                for (int y = -GateVerticalSearchRadius; y <= GateVerticalSearchRadius; y++) {
                     bPos.set(pos.getX() + x, pos.getY() + y,pos.getZ() + z);
 
                     if (world.getBlockEntity(bPos) instanceof SGBaseBlockEntity sgBase) {
@@ -60,7 +63,7 @@ public class DHDBlock extends Block implements BlockEntityProvider {
 
                         //If we have a valid DHD entity then save our stargatepos as this one.
                         if (world.getBlockEntity(pos) instanceof DHDBlockEntity dhdBlockEntity)
-                            dhdBlockEntity.setStargatePos(bPos);
+                            dhdBlockEntity.setStargatePos(bPos.toImmutable());
 
                         // We break even if we don't have one because if we don't it doesn't matter. We should always have one though so.
                         break;
