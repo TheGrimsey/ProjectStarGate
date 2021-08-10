@@ -1,7 +1,5 @@
 package net.thegrimsey.projectstargate.blocks.entity;
 
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.block.entity.BlockEntityClientSerializable;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.block.BlockState;
@@ -17,7 +15,7 @@ import net.minecraft.text.TranslatableText;
 import net.minecraft.util.math.BlockPos;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
 import net.thegrimsey.projectstargate.screens.DHDScreenHandler;
-import net.thegrimsey.projectstargate.utils.DimensionGlyphStorage;
+import net.thegrimsey.projectstargate.persistentstate.DimensionGlyphStorage;
 import org.jetbrains.annotations.Nullable;
 
 public class DHDBlockEntity extends BlockEntity implements BlockEntityClientSerializable, ExtendedScreenHandlerFactory {

@@ -2,11 +2,12 @@ package net.thegrimsey.projectstargate.screens;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.network.PacketByteBuf;
-import net.minecraft.screen.*;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.screen.ScreenHandlerContext;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
 import net.thegrimsey.projectstargate.ProjectSGNetworking;
@@ -26,6 +27,8 @@ public class DHDScreenHandler extends ScreenHandler {
     byte[] writtenAddress = new byte[AddressingUtil.ADDRESS_LENGTH];
     @Environment(EnvType.CLIENT)
     int writeHead = 0;
+    @Environment(EnvType.CLIENT)
+    Text text = Text.of("---- ---- -");
 
 
     public DHDScreenHandler(int syncId, PlayerInventory playerInventory, PacketByteBuf buf) {
@@ -50,24 +53,14 @@ public class DHDScreenHandler extends ScreenHandler {
         return canUse(context, player, ProjectSGBlocks.DHD_BLOCK);
     }
 
-    public void dialGlyph(byte glyph)
+    public void writeGlyph(byte glyph)
     {
         if(glyph < 0 || glyph > AddressingUtil.GLYPH_COUNT || writeHead == AddressingUtil.ADDRESS_LENGTH)
             return;
 
         writtenAddress[writeHead] = glyph;
         writeHead++;
-    }
-
-    public void dialGate()
-    {
-        if(writeHead < 8)
-            return; // Trying to dial with unfinished address;
-
-        if(writeHead < 9)
-            writtenAddress[8] = dimension;
-
-        ProjectSGNetworking.sendDialDHDPacket(dhdPos, AddressingUtil.ConvertAddressBytesToLong(writtenAddress));
+        updateText();
     }
 
     public void eraseGlyph() {
@@ -75,7 +68,25 @@ public class DHDScreenHandler extends ScreenHandler {
         {
             writeHead--;
             writtenAddress[writeHead] = -1;
+            updateText();
         }
+    }
+
+    public void dialGate()
+    {
+        if(writeHead < 8)
+            return; // Trying to dial with unfinished address;
+
+        // Fill in dimension glyph if it wasn't entered.
+        if(writeHead < 9)
+        {
+            writtenAddress[8] = dimension;
+            writeHead = 9;
+            updateText();
+        }
+
+        // Send dial packet to server.
+        ProjectSGNetworking.sendDialDHDPacket(dhdPos, AddressingUtil.ConvertAddressBytesToLong(writtenAddress));
     }
 
     public DHDBlockEntity getDHD()
@@ -86,5 +97,21 @@ public class DHDScreenHandler extends ScreenHandler {
 
             return null;
         }, null);
+    }
+
+    void updateText()
+    {
+        StringBuilder textString = new StringBuilder(AddressingUtil.ADDRESS_LENGTH);
+        for(byte glyph : writtenAddress)
+        {
+            if(glyph == -1)
+                textString.append('-');
+            else
+                textString.append(AddressingUtil.GLYPHS.charAt(glyph));
+        }
+        textString.insert(8, ' ');
+        textString.insert(4, ' ');
+
+        text = Text.of(textString.toString());
     }
 }

@@ -7,6 +7,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.World;
+import net.thegrimsey.projectstargate.persistentstate.DimensionGlyphStorage;
 import org.jetbrains.annotations.NotNull;
 
 public class AddressingUtil {
@@ -89,10 +90,9 @@ public class AddressingUtil {
     public static long ConvertAddressStringToLong(String address)
     {
         byte[] tempBytes = new byte[ADDRESS_LENGTH];
-        char[] tempChars = address.toCharArray();
-        for(int i = 0; i < tempChars.length && i < ADDRESS_LENGTH; i++)
+        for(int i = 0; i < address.length() && i < ADDRESS_LENGTH; i++)
         {
-            tempBytes[i] = (byte) GLYPHS.indexOf(tempChars[i]);
+            tempBytes[i] = (byte) GLYPHS.indexOf(address.charAt(i));
         }
 
         return ConvertAddressBytesToLong(tempBytes);

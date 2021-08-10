@@ -18,7 +18,7 @@ import net.thegrimsey.projectstargate.blocks.entity.SGBaseBlockEntity;
  *   Primarily based on original SGCraft implementation.
  *   https://github.com/AlmuraDev/SGCraft/blob/master/src/mod/gcewing/sg/client/renderer/SGBaseTERenderer.java
  */
-public class StarGateRenderer<T extends BlockEntity> implements BlockEntityRenderer<SGBaseBlockEntity> {
+public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> {
 
     final static Identifier TEXTURE = new Identifier(ProjectStarGate.MODID, "textures/blockentity/stargate.png");
     final static Identifier TEXTURE_CHEVRON = new Identifier(ProjectStarGate.MODID, "textures/blockentity/chevron.png");

@@ -1,9 +1,9 @@
-package net.thegrimsey.projectstargate.utils;
+package net.thegrimsey.projectstargate.persistentstate;
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.PersistentState;
+import net.thegrimsey.projectstargate.utils.AddressingUtil;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -38,7 +38,7 @@ public class DimensionGlyphStorage extends PersistentState {
         if(!dimensionGlyphs.containsKey(identifier))
         {
             if(dimensionGlyphs.size() == AddressingUtil.GLYPH_COUNT)
-                throw new Exception("Too many dimensions."); //
+                throw new Exception("Too many dimensions.");
 
             dimensionGlyphs.put(identifier, (byte) dimensionGlyphs.size());
             markDirty();

@@ -13,6 +13,8 @@ import net.thegrimsey.projectstargate.utils.AddressingUtil;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL11;
 
+import java.awt.*;
+
 public class DHDScreen extends HandledScreen<DHDScreenHandler> {
     private static final Identifier DHD_TEXTURE = new Identifier(ProjectStarGate.MODID, "textures/gui/dhd_gui.png");
     private static final Identifier CENTER_BUTTON_TEXTURE = new Identifier(ProjectStarGate.MODID, "textures/gui/dhd_centre.png");
@@ -67,12 +69,14 @@ public class DHDScreen extends HandledScreen<DHDScreenHandler> {
 
     @Override
     protected void drawForeground(MatrixStack matrices, int mouseX, int mouseY) {
+        textRenderer.draw(matrices, handler.text, (width - textRenderer.getWidth(handler.text))/2f, height/1.8f, Color.WHITE.getRGB());
     }
 
     @Override
     public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
         renderBackground(matrices);
         this.drawBackground(matrices, delta, mouseX, mouseY);
+        this.drawForeground(matrices, mouseX, mouseY);
     }
 
     @Override
@@ -105,7 +109,7 @@ public class DHDScreen extends HandledScreen<DHDScreenHandler> {
                 return true;
 
             default:
-                handler.dialGlyph((byte) AddressingUtil.GLYPHS.indexOf(keyCode));
+                handler.writeGlyph((byte) AddressingUtil.GLYPHS.indexOf(keyCode));
                 return true;
         }
     }

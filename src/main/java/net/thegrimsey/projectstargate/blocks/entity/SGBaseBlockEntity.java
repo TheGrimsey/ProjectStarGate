@@ -13,7 +13,6 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.screen.ScreenHandler;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -29,14 +28,18 @@ import net.thegrimsey.projectstargate.ProjectSGBlocks;
 import net.thegrimsey.projectstargate.blocks.SGBaseBlock;
 import net.thegrimsey.projectstargate.screens.StargateScreenHandler;
 import net.thegrimsey.projectstargate.utils.AddressingUtil;
-import net.thegrimsey.projectstargate.utils.GlobalAddressStorage;
+import net.thegrimsey.projectstargate.networking.GlobalAddressStorage;
 import net.thegrimsey.projectstargate.utils.StarGateState;
+import net.thegrimsey.projectstargate.utils.WorldUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
 
 public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientSerializable, ExtendedScreenHandlerFactory {
+    static double rotationSpeed = 2.0;
+    static double angleBetweenSymbols = 360.0 / AddressingUtil.GLYPH_COUNT;
+
     public long address = -1;
     StarGateState gateState = StarGateState.IDLE;
     boolean merged = false;
@@ -46,7 +49,8 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
     // Runtime values. These are not saved.
     float ringRotation = 0f;
-    short engagedChevrons = 0; //Bitfield.
+    float rotTimeToChevron = 0f;
+    byte engagedChevrons = 0;
     int ticksInState = 0;
 
     SGBaseBlockEntity remoteGate;
@@ -122,11 +126,11 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
         gateState = StarGateState.fromID(tag.getByte("state"));
         ringRotation = tag.getFloat("ringRotation");
-        engagedChevrons = tag.getShort("engagedChevrons");
+        engagedChevrons = tag.getByte("engagedChevrons");
     }
 
     public boolean isChevronEngaged(int chevron) {
-        return (engagedChevrons & (1 << chevron)) != 0;
+        return engagedChevrons > chevron;
     }
 
     @Environment(EnvType.CLIENT)
@@ -134,6 +138,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         lastRingRotation = currentRingRotation;
         switch (gateState) {
             case IDLE:
+            case CONNECTED:
                 break;
             case DIALING: {
                 /*
@@ -141,12 +146,12 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
                  *   Each time the server rotates we want to rotate to that rotation.
                  */
                 if (Math.abs(currentRingRotation - ringRotation) > 10.f) {
-                    currentRingRotation = (currentRingRotation + 30.f / 20.f) % 360;
+                    float rotationDirection = engagedChevrons % 2 == 0 ? 1f : -1f;
+
+                    currentRingRotation = (ringRotation + (30.f/20.f) * rotationDirection) % 360;
                 }
             }
             break;
-            case CONNECTED:
-                break;
             default:
                 assert false;
         }
@@ -190,12 +195,14 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
              *   and have them do it themselves. Problem comes with new clients though.
              */
             // Rotate ring, engage chevrons.
-            ringRotation = (ringRotation + 30.f) % 360;
+            float rotationDirection = engagedChevrons % 2 == 0 ? 1f : -1f;
+
+            ringRotation = (ringRotation + 30.f * rotationDirection) % 360;
+            engagedChevrons++;
             sync();
         }
 
-        // TEMP
-        if (!isRemote && ticksInState >= 60) {
+        if (!isRemote && engagedChevrons == 9) {
             connect();
         }
     }
@@ -216,12 +223,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
         List<LivingEntity> entitiesInGate = Objects.requireNonNull(world).getEntitiesByClass(LivingEntity.class, cachedBounds, (livingEntity -> true));
         entitiesInGate.forEach(livingEntity -> {
-            /*double dX = livingEntity.getX() - livingEntity.prevX;
-            double dZ = livingEntity.getZ() - livingEntity.prevZ;
-            double length = Math.abs(dX) + Math.abs(dZ);
-            dX /= length;
-            dZ /= length;*/
-
+            // TODO Only allow teleport when walking in from front.
             FabricDimensions.teleport(livingEntity, (ServerWorld)remoteGate.world,
                     new TeleportTarget(
                             new Vec3d(remoteGate.getPos().getX(), remoteGate.getPos().getY() + 1, remoteGate.getPos().getZ()),
@@ -300,22 +302,23 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         }
 
         // Check if remote gate is connected. If so we just instantly fail.
-        Pair<BlockPos, World> target = getPosAndWorldForAddress(dialingAddress);
+        Pair<BlockPos, World> target = WorldUtils.getPosAndWorldForAddress(world.getServer(), dialingAddress);
         if (target == null)
             return;
 
-        // Chunk loading.
-        setChunkLoading(target.getLeft(), target.getRight(), true);
-        setChunkLoading(pos, world, true);
+        // Load target chunk
+        target.getRight().getChunk(pos.getX() >> 4, pos.getZ() >> 4);
 
         // Get target block entity.
         BlockEntity remoteBlockEntity = target.getRight().getBlockEntity(target.getLeft());
         if (!(remoteBlockEntity instanceof SGBaseBlockEntity)) {
-            setChunkLoading(target.getLeft(), target.getRight(), false);
-            setChunkLoading(pos, world, false);
-            GlobalAddressStorage.getInstance(world.getServer()).removeAddress(dialingAddress, target.getLeft());
+            GlobalAddressStorage.getInstance(world.getServer()).removeAddress(dialingAddress, target.getLeft()); // Remove address location since there isn't actually a stargate there.
             return;
         }
+
+        // Keep target chunks loaded.
+        WorldUtils.setChunkLoading(target.getRight(), target.getLeft(), true);
+        WorldUtils.setChunkLoading(world, pos, true);
 
         remoteGate = (SGBaseBlockEntity) remoteBlockEntity;
         remoteGate.isRemote = true;
@@ -332,7 +335,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     }
 
     void connect() {
-        Pair<BlockPos, World> target = getPosAndWorldForAddress(remoteAddress);
+        Pair<BlockPos, World> target = WorldUtils.getPosAndWorldForAddress(world.getServer(), remoteAddress);
         if (target == null) {
             System.out.println("No valid position for address: " + remoteAddress);
             return;
@@ -346,7 +349,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         }
 
         changeState(StarGateState.CONNECTED);
-        engagedChevrons = 0b1_1111_1111;
         sync();
         markDirty();
 
@@ -373,8 +375,8 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         globalAddressStorage.unlockAddress(remoteAddress);
 
         // Stop chunk loading
-        setChunkLoading(pos, world, false);
-        setChunkLoading(remoteGate.pos, remoteGate.world, false);
+        WorldUtils.setChunkLoading(world, pos, false);
+        WorldUtils.setChunkLoading(remoteGate.world, remoteGate.pos, false);
 
         remoteGate.isRemote = false;
         remoteGate.remoteGate = null;
@@ -394,22 +396,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     private void changeState(StarGateState newState) {
         gateState = newState;
         ticksInState = 0;
-    }
-
-    Pair<BlockPos,World> getPosAndWorldForAddress(long address) {
-        GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance(world.getServer());
-        if (!globalAddressStorage.hasAddress(address))
-            return null;
-
-        MinecraftServer server = world.getServer();
-        BlockPos targetPos = globalAddressStorage.getPosFromAddress(address);
-        byte dimensionGlyph = (byte) (address / 36 / 36 / 36 / 36 / 36 / 36 / 36 / 36); // This is kinda cursed.
-
-        return new Pair<>(targetPos, AddressingUtil.GetWorldFromDimensionGlyph(server, dimensionGlyph));
-    }
-
-    void setChunkLoading(BlockPos pos, World world, boolean load) {
-        ((ServerWorld) world).setChunkForced(pos.getX() >> 4, pos.getZ() >> 4, load);
     }
 
     @Override

@@ -1,4 +1,4 @@
-package net.thegrimsey.projectstargate.utils;
+package net.thegrimsey.projectstargate.networking;
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.MinecraftServer;
@@ -23,7 +23,6 @@ public class GlobalAddressStorage extends PersistentState {
     public static GlobalAddressStorage getInstance(MinecraftServer server) {
         return server.getOverworld().getPersistentStateManager().getOrCreate(GlobalAddressStorage::fromNbt, GlobalAddressStorage::new, "StarGate_GlobalAddressStorage");
     }
-
 
     private static GlobalAddressStorage fromNbt(NbtCompound tag) {
         GlobalAddressStorage globalAddressStorage = new GlobalAddressStorage();
@@ -86,6 +85,9 @@ public class GlobalAddressStorage extends PersistentState {
 
         HashSet<BlockPos> positionSet = worldAddresses.get(address);
         positionSet.remove(position);
+
+        if(positionSet.isEmpty())
+            worldAddresses.remove(address);
 
         markDirty();
     }
