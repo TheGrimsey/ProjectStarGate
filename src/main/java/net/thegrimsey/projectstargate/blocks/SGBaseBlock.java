@@ -10,6 +10,7 @@ import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.DirectionProperty;
@@ -67,6 +68,13 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
             ItemStack item = player.getStackInHand(hand);
             if (item.isEmpty()) {
                 player.openHandledScreen((SGBaseBlockEntity) world.getBlockEntity(pos));
+
+                // Test code below.
+            } else if(item.getItem() == Items.BREAD) {
+                if (world.getBlockEntity(pos) instanceof SGBaseBlockEntity blockEntity){
+                    blockEntity.dimensionalUpgrade = !blockEntity.dimensionalUpgrade;
+                    blockEntity.sync();
+                }
             } else if (item.hasCustomName()) {
                 if (world.getBlockEntity(pos) instanceof SGBaseBlockEntity blockEntity)
                     blockEntity.dial(AddressingUtil.ConvertAddressStringToLong(item.getName().asString()));
@@ -96,7 +104,6 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
 
     @Override
     boolean checkMerge(World world, BlockState state, BlockPos pos) {
-
         // The base block is at the bottom-center of the stargate. Our facing matters, so we can quickly figure out where the bottom-left of the structure should be and go from there.
         int bX = pos.getX(), bY = pos.getY(), bZ = pos.getZ();
         boolean onZ = false;

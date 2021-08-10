@@ -43,6 +43,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     public long address = -1;
     StarGateState gateState = StarGateState.IDLE;
     boolean merged = false;
+    public boolean dimensionalUpgrade = false; // TODO Merge boolean values into bitmask.
 
     boolean isRemote = false;
     long remoteAddress = -1;
@@ -112,6 +113,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     @Override
     public NbtCompound toClientTag(NbtCompound tag) {
         tag.putBoolean("merged", merged);
+        tag.putBoolean("dimensionalUpgrade", dimensionalUpgrade);
 
         tag.putByte("state", StarGateState.toID(gateState));
         tag.putFloat("ringRotation", ringRotation);
@@ -123,6 +125,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     @Override
     public void fromClientTag(NbtCompound tag) {
         merged = tag.getBoolean("merged");
+        dimensionalUpgrade = tag.getBoolean("dimensionalUpgrade");
 
         gateState = StarGateState.fromID(tag.getByte("state"));
         ringRotation = tag.getFloat("ringRotation");
@@ -131,6 +134,10 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
     public boolean isChevronEngaged(int chevron) {
         return engagedChevrons > chevron;
+    }
+
+    public int getChevronCount() {
+        return dimensionalUpgrade ? 9 : 8;
     }
 
     @Environment(EnvType.CLIENT)
@@ -292,6 +299,19 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         // If we are connected/dialing try to disconnect. If disconnect fails return.
         if(gateState != StarGateState.IDLE && !disconnect(false))
             return;
+
+        // Restrict cross-dimensional dialing without upgrade.
+        if(!dimensionalUpgrade)
+        {
+            byte targetDimension =  (byte) (dialingAddress / 36 / 36 / 36 / 36 / 36 / 36 / 36 / 36);
+            byte selfDimension =  (byte) (address / 36 / 36 / 36 / 36 / 36 / 36 / 36 / 36);
+
+            if(targetDimension != selfDimension)
+            {
+                System.out.println("Can't dial other dimension without dimensional upgrade.");
+                return;
+            }
+        }
 
         // Check if homeAddress is already locked & if dialingAddress is as well.
         GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance(world.getServer());

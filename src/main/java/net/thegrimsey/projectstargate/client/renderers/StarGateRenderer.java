@@ -112,7 +112,7 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
     }
 
     void renderChevrons(SGBaseBlockEntity entity, MatrixStack matrices, VertexConsumer vertexConsumer, int overlay, int light) {
-        int chevronCount = 9;
+        int chevronCount = entity.getChevronCount();
         float anglesBetweenChevrons = 360f / chevronCount;
 
         for (int i = 0; i < chevronCount; i++) {
