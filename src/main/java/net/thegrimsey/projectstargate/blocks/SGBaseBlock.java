@@ -103,7 +103,7 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
     }
 
     @Override
-    boolean checkMerge(World world, BlockState state, BlockPos pos) {
+    boolean tryMerge(World world, BlockState state, BlockPos pos) {
         // The base block is at the bottom-center of the stargate. Our facing matters, so we can quickly figure out where the bottom-left of the structure should be and go from there.
         int bX = pos.getX(), bY = pos.getY(), bZ = pos.getZ();
         boolean onZ = false;
