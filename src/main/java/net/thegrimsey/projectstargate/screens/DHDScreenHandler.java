@@ -2,15 +2,18 @@ package net.thegrimsey.projectstargate.screens;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.ScreenHandlerContext;
+import net.minecraft.sound.SoundCategory;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
 import net.thegrimsey.projectstargate.ProjectSGNetworking;
+import net.thegrimsey.projectstargate.ProjectSGSounds;
 import net.thegrimsey.projectstargate.ProjectStarGate;
 import net.thegrimsey.projectstargate.blocks.entity.DHDBlockEntity;
 import net.thegrimsey.projectstargate.utils.AddressingUtil;
@@ -29,6 +32,8 @@ public class DHDScreenHandler extends ScreenHandler {
     int writeHead = 0;
     @Environment(EnvType.CLIENT)
     Text text = null;
+    @Environment(EnvType.CLIENT)
+    PlayerEntity player;
 
 
     public DHDScreenHandler(int syncId, PlayerInventory playerInventory, PacketByteBuf buf) {
@@ -36,6 +41,7 @@ public class DHDScreenHandler extends ScreenHandler {
         dhdPos = buf.readBlockPos();
         dimension = buf.readByte();
 
+        player = playerInventory.player;
         context = ScreenHandlerContext.create(playerInventory.player.world, dhdPos);
 
         writtenAddress = new byte[AddressingUtil.ADDRESS_LENGTH];
@@ -57,8 +63,10 @@ public class DHDScreenHandler extends ScreenHandler {
 
     public void writeGlyph(byte glyph)
     {
-        if(glyph < 0 || glyph > AddressingUtil.GLYPH_COUNT || writeHead == AddressingUtil.ADDRESS_LENGTH)
+        if(glyph < 0 || glyph > AddressingUtil.GLYPH_COUNT || writeHead == getDHD().getGate().getChevronCount())
             return;
+
+        playButtonClickSound();
 
         writtenAddress[writeHead] = glyph;
         writeHead++;
@@ -68,14 +76,25 @@ public class DHDScreenHandler extends ScreenHandler {
     public void eraseGlyph() {
         if(writeHead > 0 && writeHead <= writtenAddress.length)
         {
+            playButtonClickSound();
+
             writeHead--;
             writtenAddress[writeHead] = -1;
             updateText();
         }
     }
 
+    void playButtonClickSound() {
+        player.world.playSound(player, dhdPos, ProjectSGSounds.DHD_BUTTON_CLICK_EVENT, SoundCategory.BLOCKS, 1.0f, 1.0f);
+    }
+    void playDialSound() {
+        player.world.playSound(player, dhdPos, ProjectSGSounds.DHD_DIAL_EVENT, SoundCategory.BLOCKS, 1.0f, 1.0f);
+    }
+
     public void dialGate()
     {
+        playDialSound();
+
         if(writeHead < 8)
             return; // Trying to dial with unfinished address;
 

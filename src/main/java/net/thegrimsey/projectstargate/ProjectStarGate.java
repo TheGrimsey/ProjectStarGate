@@ -30,5 +30,7 @@ public class ProjectStarGate implements ModInitializer {
         ProjectSGFeatures.registerFeatures();
 
         ProjectSGNetworking.registerNetworking();
+
+        ProjectSGSounds.registerSounds();
     }
 }

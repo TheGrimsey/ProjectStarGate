@@ -224,13 +224,11 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
          *   Teleport all entities moving through the portal.
          *   - Must translate position to correct position in destination portal.
          */
-
-        if(cachedBounds == null)
-            cachedBounds = getTeleportBounds();
-
-        List<LivingEntity> entitiesInGate = Objects.requireNonNull(world).getEntitiesByClass(LivingEntity.class, cachedBounds, (livingEntity -> true));
+        List<LivingEntity> entitiesInGate = Objects.requireNonNull(world).getEntitiesByClass(LivingEntity.class, getTeleportBounds(), (livingEntity -> true));
         entitiesInGate.forEach(livingEntity -> {
             // TODO Only allow teleport when walking in from front.
+
+            // TODO figure out better way to do teleport. This plays nether portal sound :(
             FabricDimensions.teleport(livingEntity, (ServerWorld)remoteGate.world,
                     new TeleportTarget(
                             new Vec3d(remoteGate.getPos().getX(), remoteGate.getPos().getY() + 1, remoteGate.getPos().getZ()),
@@ -250,12 +248,17 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     }
 
     Box getTeleportBounds() {
-        float minY = getPos().getY() + 1, maxY = getPos().getY() + 4;
-        boolean onZ = getFacing() == Direction.WEST || getFacing() == Direction.EAST;
-        float minX = getPos().getX() - (onZ ? 0 : 1), maxX = getPos().getX() + (onZ ? 0 : 1);
-        float minZ = getPos().getZ() - (onZ ? 1 : 0), maxZ = getPos().getZ() + (onZ ? 1 : 0);
+        if(cachedBounds == null)
+        {
+            float minY = getPos().getY() + 1, maxY = getPos().getY() + 4;
+            boolean onZ = getFacing() == Direction.WEST || getFacing() == Direction.EAST;
+            float minX = getPos().getX() - (onZ ? 0 : 1), maxX = getPos().getX() + (onZ ? 0 : 1);
+            float minZ = getPos().getZ() - (onZ ? 1 : 0), maxZ = getPos().getZ() + (onZ ? 1 : 0);
 
-        return new Box(minX, minY, minZ, maxX, maxY, maxZ);
+            cachedBounds = new Box(minX, minY, minZ, maxX, maxY, maxZ);
+        }
+
+        return cachedBounds;
     }
 
     public Direction getFacing() {

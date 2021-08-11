@@ -1,0 +1,20 @@
+{
+    "dhd_button_click": {
+        "subtitle": "subtitles.projectstargate.dhd_button_click",
+        "sounds": [
+            "projectstargate:dhd/dhd_button_click_1",
+            "projectstargate:dhd/dhd_button_click_2",
+            "projectstargate:dhd/dhd_button_click_3",
+            "projectstargate:dhd/dhd_button_click_4",
+            "projectstargate:dhd/dhd_button_click_5",
+            "projectstargate:dhd/dhd_button_click_6",
+            "projectstargate:dhd/dhd_button_click_7"
+        ]
+    },
+    "dhd_dial": {
+        "subtitle": "subtitles.projectstargate.dhd_dial",
+        "sounds": [
+            "projectstargate:dhd/dhd_dial"
+        ]
+    }
+}

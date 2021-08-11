@@ -72,7 +72,9 @@ public class DHDScreen extends HandledScreen<DHDScreenHandler> {
 
     @Override
     protected void drawForeground(MatrixStack matrices, int mouseX, int mouseY) {
-        textRenderer.draw(matrices, handler.text, (width - textRenderer.getWidth(handler.text))/2f, height/1.8f, Color.WHITE.getRGB());
+        float symbolScale = 0.5f;
+
+        textRenderer.draw(matrices, handler.text, (width - textRenderer.getWidth(handler.text))/2f, (height + SYMBOL_TEXTURE_SIZE*symbolScale)/2 - textRenderer.fontHeight, Color.WHITE.getRGB());
 
         // Draw written glyphs.
         RenderSystem.setShaderTexture(0, SYMBOL_TEXTURE);
@@ -82,14 +84,14 @@ public class DHDScreen extends HandledScreen<DHDScreenHandler> {
         RenderSystem.blendFunc(GlStateManager.SrcFactor.SRC_ALPHA, GlStateManager.DstFactor.ONE_MINUS_SRC_ALPHA);
 
         int drawCount = Math.min(handler.getDHD().getGate().getChevronCount(), handler.writeHead);
-        int x = this.width/2 - drawCount*SYMBOL_TEXTURE_SIZE/2;
+        int x = (int) (this.width/2 - drawCount * SYMBOL_TEXTURE_SIZE * symbolScale / 2);
         int y = (this.height - SYMBOL_TEXTURE_SIZE)/2;
 
         for(int i = 0; i < drawCount; i++)
         {
             int texX = (handler.writtenAddress[i] % 10) * SYMBOL_TEXTURE_SIZE;
             int texY = (handler.writtenAddress[i] / 10) * SYMBOL_TEXTURE_SIZE;
-            drawTexture(matrices, x + SYMBOL_TEXTURE_SIZE*i, y, texX, texY, SYMBOL_TEXTURE_SIZE, SYMBOL_TEXTURE_SIZE, 512, 256);
+            drawTexture(matrices, (int)(x + SYMBOL_TEXTURE_SIZE*symbolScale*i), y, (int)(SYMBOL_TEXTURE_SIZE*symbolScale), (int)(SYMBOL_TEXTURE_SIZE*symbolScale), texX, texY, SYMBOL_TEXTURE_SIZE, SYMBOL_TEXTURE_SIZE, 512, 256);
         }
     }
 
