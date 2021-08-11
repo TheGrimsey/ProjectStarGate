@@ -18,6 +18,9 @@ import java.awt.*;
 public class DHDScreen extends HandledScreen<DHDScreenHandler> {
     private static final Identifier DHD_TEXTURE = new Identifier(ProjectStarGate.MODID, "textures/gui/dhd_gui.png");
     private static final Identifier CENTER_BUTTON_TEXTURE = new Identifier(ProjectStarGate.MODID, "textures/gui/dhd_centre.png");
+    private static final Identifier SYMBOL_TEXTURE = new Identifier(ProjectStarGate.MODID, "textures/gui/symbols.png");
+
+    final static int SYMBOL_TEXTURE_SIZE = 48;
 
     int buttonX, buttonY, buttonWidth, buttonHeight;
 
@@ -70,6 +73,24 @@ public class DHDScreen extends HandledScreen<DHDScreenHandler> {
     @Override
     protected void drawForeground(MatrixStack matrices, int mouseX, int mouseY) {
         textRenderer.draw(matrices, handler.text, (width - textRenderer.getWidth(handler.text))/2f, height/1.8f, Color.WHITE.getRGB());
+
+        // Draw written glyphs.
+        RenderSystem.setShaderTexture(0, SYMBOL_TEXTURE);
+        RenderSystem.texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+        RenderSystem.texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
+        RenderSystem.enableBlend();
+        RenderSystem.blendFunc(GlStateManager.SrcFactor.SRC_ALPHA, GlStateManager.DstFactor.ONE_MINUS_SRC_ALPHA);
+
+        int drawCount = Math.min(handler.getDHD().getGate().getChevronCount(), handler.writeHead);
+        int x = this.width/2 - drawCount*SYMBOL_TEXTURE_SIZE/2;
+        int y = (this.height - SYMBOL_TEXTURE_SIZE)/2;
+
+        for(int i = 0; i < drawCount; i++)
+        {
+            int texX = (handler.writtenAddress[i] % 10) * SYMBOL_TEXTURE_SIZE;
+            int texY = (handler.writtenAddress[i] / 10) * SYMBOL_TEXTURE_SIZE;
+            drawTexture(matrices, x + SYMBOL_TEXTURE_SIZE*i, y, texX, texY, SYMBOL_TEXTURE_SIZE, SYMBOL_TEXTURE_SIZE, 512, 256);
+        }
     }
 
     @Override

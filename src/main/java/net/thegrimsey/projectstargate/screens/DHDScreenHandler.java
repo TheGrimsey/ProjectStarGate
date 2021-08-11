@@ -24,11 +24,11 @@ public class DHDScreenHandler extends ScreenHandler {
     @Environment(EnvType.CLIENT)
     byte dimension = -1;
     @Environment(EnvType.CLIENT)
-    byte[] writtenAddress = new byte[AddressingUtil.ADDRESS_LENGTH];
+    byte[] writtenAddress = null;
     @Environment(EnvType.CLIENT)
     int writeHead = 0;
     @Environment(EnvType.CLIENT)
-    Text text = Text.of("---- ---- -");
+    Text text = null;
 
 
     public DHDScreenHandler(int syncId, PlayerInventory playerInventory, PacketByteBuf buf) {
@@ -36,9 +36,11 @@ public class DHDScreenHandler extends ScreenHandler {
         dhdPos = buf.readBlockPos();
         dimension = buf.readByte();
 
-        Arrays.fill(writtenAddress, (byte) -1);
-
         context = ScreenHandlerContext.create(playerInventory.player.world, dhdPos);
+
+        writtenAddress = new byte[AddressingUtil.ADDRESS_LENGTH];
+        Arrays.fill(writtenAddress, (byte) -1);
+        updateText();
     }
 
     public DHDScreenHandler(int syncId, PlayerInventory playerInventory, DHDBlockEntity sourceDHD) {
@@ -50,7 +52,7 @@ public class DHDScreenHandler extends ScreenHandler {
 
     @Override
     public boolean canUse(PlayerEntity player) {
-        return canUse(context, player, ProjectSGBlocks.DHD_BLOCK);
+        return canUse(context, player, ProjectSGBlocks.DHD_BLOCK) && getDHD().getGate() != null;
     }
 
     public void writeGlyph(byte glyph)
@@ -102,14 +104,14 @@ public class DHDScreenHandler extends ScreenHandler {
     void updateText()
     {
         StringBuilder textString = new StringBuilder(AddressingUtil.ADDRESS_LENGTH);
-        for(byte glyph : writtenAddress)
+        for(int i = 0; i < getDHD().getGate().getChevronCount(); i++)
         {
-            if(glyph == -1)
+            if(writtenAddress[i] == -1)
                 textString.append('-');
             else
-                textString.append(AddressingUtil.GLYPHS.charAt(glyph));
+                textString.append(AddressingUtil.GLYPHS.charAt(writtenAddress[i]));
         }
-        textString.insert(8, ' ');
+        if(textString.length() > 8) textString.insert(8, ' ');
         textString.insert(4, ' ');
 
         text = Text.of(textString.toString());
