@@ -5,6 +5,7 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.block.entity.BlockEntityClientSerializable;
 import net.fabricmc.fabric.api.dimension.v1.FabricDimensions;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.LivingEntity;
@@ -13,6 +14,7 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.screen.ScreenHandler;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -26,6 +28,7 @@ import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
 import net.thegrimsey.projectstargate.blocks.SGBaseBlock;
+import net.thegrimsey.projectstargate.client.renderers.StarGateRenderer;
 import net.thegrimsey.projectstargate.screens.StargateScreenHandler;
 import net.thegrimsey.projectstargate.utils.AddressingUtil;
 import net.thegrimsey.projectstargate.networking.GlobalAddressStorage;
@@ -63,9 +66,16 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     public float currentRingRotation = 0.f;
     @Environment(EnvType.CLIENT)
     public float lastRingRotation = 0.f;
+    @Environment(EnvType.CLIENT)
+    public float[][] eventHorizonZ; // Event Horizon Z positions. Initial array is band.
 
     public SGBaseBlockEntity(BlockPos pos, BlockState state) {
         super(ProjectSGBlocks.SG_BASE_BLOCKENTITY, pos, state);
+
+        if(FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT)
+        {
+            eventHorizonZ = new float[3][StarGateRenderer.ringSegmentCount];
+        }
     }
 
     public static void tick(World world, BlockPos blockPos, BlockState blockState, BlockEntity blockEntity) {
@@ -145,7 +155,16 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         lastRingRotation = currentRingRotation;
         switch (gateState) {
             case IDLE:
-            case CONNECTED:
+                break;
+            case CONNECTED: {
+                for(float[] band : eventHorizonZ)
+                {
+                    for(int i = 0; i < band.length; i++)
+                    {
+                        band[i] =  (float)i / StarGateRenderer.ringSegmentCount;
+                    }
+                }
+            }
                 break;
             case DIALING: {
                 /*
@@ -158,7 +177,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
                     currentRingRotation = (ringRotation + (30.f/20.f) * rotationDirection) % 360;
                 }
             }
-            break;
+                break;
             default:
                 assert false;
         }

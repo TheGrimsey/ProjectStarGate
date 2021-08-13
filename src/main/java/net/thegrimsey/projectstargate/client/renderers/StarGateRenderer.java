@@ -32,7 +32,7 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
         return RenderLayerMultiPhaseAccessor.of("horizon_layer", VertexFormats.POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL, VertexFormat.DrawMode.TRIANGLES, 256, true, false, multiPhaseParameters);
     }).apply(TEXTURE_HORIZON);
 
-    final static int ringSegmentCount = 32;
+    public final static int ringSegmentCount = 32;
     final static float ringInnerRadius = 2.0f;
     final static float ringMidRadius = 2.25f;
     final static float ringOuterRadius = 2.5f;
@@ -119,7 +119,7 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
         // Render chevrons.
         TEXTURE_WIDTH = 64;
         TEXTURE_HEIGHT = 64;
-        VertexConsumer chevronVertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(TEXTURE_HORIZON));
+        VertexConsumer chevronVertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(TEXTURE_CHEVRON));
         renderChevrons(entity, matrices, chevronVertexConsumer, overlay, light);
 
         VertexConsumer horizonVertexConsumer = vertexConsumers.getBuffer(HORIZON_LAYER);
@@ -279,38 +279,54 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
     void renderEventHorizon(SGBaseBlockEntity entity, float tickDelta, MatrixStack matrices, VertexConsumer vertexConsumer, int overlay, int light)
     {
         matrices.push();
+        matrices.translate(0,0,1); // DEBUG.
         Matrix4f matrix = matrices.peek().getModel();
 
         for(int i = 0; i < ringSegmentCount; i++)
         {
-            renderEventHorizonPiece(vertexConsumer, overlay, light, matrix, i);
+            renderEventHorizonPiece(ringInnerRadius, ringInnerRadius * 0.5f, vertexConsumer, overlay, light, matrix, i, entity.eventHorizonZ[0], entity.eventHorizonZ[1]);
+            renderEventHorizonPiece(ringInnerRadius * 0.5f, ringInnerRadius * 0.25f, vertexConsumer, overlay, light, matrix, i, entity.eventHorizonZ[1], entity.eventHorizonZ[2]);
         }
 
         matrices.pop();
     }
 
-    private void renderEventHorizonPiece(VertexConsumer vertexConsumer, int overlay, int light, Matrix4f matrix, int i) {
-        float outerX = ringInnerRadius * c[i], nextOuterX = ringInnerRadius * c[(i + 1) % ringSegmentCount], nextNextOuterX = ringInnerRadius * c[(i + 2) % ringSegmentCount];
-        float outerY = ringInnerRadius * s[i], nextOuterY = ringInnerRadius * s[(i + 1) % ringSegmentCount], nextNextOuterY = ringInnerRadius * s[(i + 2) % ringSegmentCount];
-        float z = 1;
+    private void renderEventHorizonPiece(float outerRadius, float innerRadius, VertexConsumer vertexConsumer, int overlay, int light, Matrix4f matrix, int i, float[] outerBandZs, float[] innerBandZs) {
+        /*
+        *   We construct quads out of triangles for bendiness.
+        *
+         */
 
-        float inZ = 1;
+        // coordinate for > triangle's first point.
+        float outerX = outerRadius * c[i];
+        float outerY = outerRadius * s[i];
 
-        float innerX = (outerX + (nextOuterX - outerX)/2)*0.5f;
-        float innerY = (outerY + (nextOuterY - outerY)/2)*0.5f;
+        // coordinate for > triangle's top point.
+        float nextOuterX = outerRadius * c[(i + 1) % ringSegmentCount];
+        float nextOuterY = outerRadius * s[(i + 1) % ringSegmentCount];
 
-        float nextInnerX = (nextOuterX + (nextNextOuterX - nextOuterX)/2)*0.5f;
-        float nextInnerY = (nextOuterY + (nextNextOuterY - nextOuterY)/2)*0.5f;
+        // coordinates for > triangle's peak & < triangle's bottom point.
+        float innerX = (c[i] + (c[(i + 1) % ringSegmentCount] - c[i])/2) * innerRadius;
+        float innerY = (s[i] + (s[(i + 1) % ringSegmentCount] - s[i])/2) * innerRadius;
+
+        // coordinate for < triangle's top point.
+        float nextInnerX = (c[(i + 1) % ringSegmentCount] + (c[(i + 2) % ringSegmentCount] - c[(i + 1) % ringSegmentCount])/2) * innerRadius;
+        float nextInnerY = (s[(i + 1) % ringSegmentCount] + (s[(i + 2) % ringSegmentCount] - s[(i + 1) % ringSegmentCount])/2) * innerRadius;
+
+        float outerZ = outerBandZs[i];
+        float innerZ = innerBandZs[i] + (innerBandZs[(i+1) % innerBandZs.length] - innerBandZs[i])/2; // Inner z is between points.
+        float nextOuterZ = outerBandZs[(i+1) % outerBandZs.length];
+        float nextInnerZ = innerBandZs[(i+1) % innerBandZs.length] + (innerBandZs[(i+2) % innerBandZs.length] - innerBandZs[(i+1) % innerBandZs.length])/2;
 
         // Inner triangle.
-        vertex(matrix, vertexConsumer, outerX, outerY, z, 0, 0, 1, 0, 0, overlay, light);
-        vertex(matrix, vertexConsumer, innerX, innerY, inZ, 0, 0, 1, 0, 0, overlay, light);
-        vertex(matrix, vertexConsumer, nextOuterX, nextOuterY, z, 0, 0, 1, 0, 0, overlay, light);
+        vertex(matrix, vertexConsumer, outerX, outerY, outerZ, 0, 0, 1, 0, 0, overlay, light); // outer I z
+        vertex(matrix, vertexConsumer, innerX, innerY, innerZ, 0, 0, 1, 0, 0, overlay, light); // inner I z
+        vertex(matrix, vertexConsumer, nextOuterX, nextOuterY, nextOuterZ, 0, 0, 1, 0, 0, overlay, light); // outer I+1 z
 
         // Outer triangle.
-        vertex(matrix, vertexConsumer, nextOuterX, nextOuterY, z, 0, 0, 1, 0, 0, overlay, light);
-        vertex(matrix, vertexConsumer, nextInnerX, nextInnerY, inZ, 0, 0, 1, 0, 0, overlay, light);
-        vertex(matrix, vertexConsumer, innerX, innerY, inZ, 0, 0, 1, 0, 0, overlay, light);
+        vertex(matrix, vertexConsumer, nextOuterX, nextOuterY, outerZ, 0, 0, 1, 0, 0, overlay, light); // outer I+1 z
+        vertex(matrix, vertexConsumer, nextInnerX, nextInnerY, nextInnerZ, 0, 0, 1, 0, 0, overlay, light); // inner I+1 z
+        vertex(matrix, vertexConsumer, innerX, innerY, innerZ, 0, 0, 1, 0, 0, overlay, light); // inner I z
     }
 
     void vertex(Matrix4f matrix4f, VertexConsumer vertexConsumer, float x, float y, float z, float nX, float nY, float nZ, float u, float v, int overlay, int light) {
