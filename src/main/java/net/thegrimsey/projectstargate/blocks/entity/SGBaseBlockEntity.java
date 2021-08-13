@@ -157,13 +157,14 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
             case IDLE:
                 break;
             case CONNECTED: {
-                for(float[] band : eventHorizonZ)
+                /*
+                for(int band = 0; band < eventHorizonZ.length; band++)
                 {
-                    for(int i = 0; i < band.length; i++)
+                    for(int i = 0; i < eventHorizonZ[band].length; i++)
                     {
-                        band[i] =  (float)i / StarGateRenderer.ringSegmentCount;
+                        eventHorizonZ[band][i] = (float)(i*band) / StarGateRenderer.ringSegmentCount / 2;
                     }
-                }
+                }*/
             }
                 break;
             case DIALING: {

@@ -1,5 +1,6 @@
 package net.thegrimsey.projectstargate.client.renderers;
 
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.render.*;
 import net.minecraft.client.render.block.entity.BlockEntityRenderer;
@@ -25,11 +26,11 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
 
     final static Identifier TEXTURE = new Identifier(ProjectStarGate.MODID, "textures/blockentity/stargate.png");
     final static Identifier TEXTURE_CHEVRON = new Identifier(ProjectStarGate.MODID, "textures/blockentity/chevron.png");
-    final static Identifier TEXTURE_HORIZON = new Identifier(ProjectStarGate.MODID, "textures/blockentity/chevron.png");
+    final static Identifier TEXTURE_HORIZON = new Identifier(ProjectStarGate.MODID, "textures/blockentity/eventhorizon.png");
 
     final static RenderLayer HORIZON_LAYER = Util.memoize((texture) -> {
         RenderLayer.MultiPhaseParameters multiPhaseParameters = RenderLayer.MultiPhaseParameters.builder().shader(RenderPhase.ENTITY_CUTOUT_SHADER).texture(new RenderPhase.Texture((Identifier) texture, false, false)).transparency(RenderPhase.NO_TRANSPARENCY).cull(RenderPhase.DISABLE_CULLING).lightmap(RenderPhase.ENABLE_LIGHTMAP).overlay(RenderPhase.ENABLE_OVERLAY_COLOR).build(true);
-        return RenderLayerMultiPhaseAccessor.of("horizon_layer", VertexFormats.POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL, VertexFormat.DrawMode.TRIANGLES, 256, true, false, multiPhaseParameters);
+        return RenderLayerMultiPhaseAccessor.of("horizon_layer", VertexFormats.POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL, VertexFormat.DrawMode.QUADS, 256, true, false, multiPhaseParameters);
     }).apply(TEXTURE_HORIZON);
 
     public final static int ringSegmentCount = 32;
@@ -122,6 +123,8 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
         VertexConsumer chevronVertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(TEXTURE_CHEVRON));
         renderChevrons(entity, matrices, chevronVertexConsumer, overlay, light);
 
+        TEXTURE_WIDTH = 1;
+        TEXTURE_HEIGHT = 1;
         VertexConsumer horizonVertexConsumer = vertexConsumers.getBuffer(HORIZON_LAYER);
         renderEventHorizon(entity, tickDelta, matrices, horizonVertexConsumer, overlay, light);
     }
@@ -279,13 +282,14 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
     void renderEventHorizon(SGBaseBlockEntity entity, float tickDelta, MatrixStack matrices, VertexConsumer vertexConsumer, int overlay, int light)
     {
         matrices.push();
-        matrices.translate(0,0,1); // DEBUG.
+        //matrices.translate(0,0,1); // DEBUG.
         Matrix4f matrix = matrices.peek().getModel();
 
         for(int i = 0; i < ringSegmentCount; i++)
         {
             renderEventHorizonPiece(ringInnerRadius, ringInnerRadius * 0.5f, vertexConsumer, overlay, light, matrix, i, entity.eventHorizonZ[0], entity.eventHorizonZ[1]);
             renderEventHorizonPiece(ringInnerRadius * 0.5f, ringInnerRadius * 0.25f, vertexConsumer, overlay, light, matrix, i, entity.eventHorizonZ[1], entity.eventHorizonZ[2]);
+            renderEventHorizonPiece(ringInnerRadius * 0.25f, 0.0f, vertexConsumer, overlay, light, matrix, i, entity.eventHorizonZ[2], entity.eventHorizonZ[2]);
         }
 
         matrices.pop();
@@ -293,40 +297,39 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
 
     private void renderEventHorizonPiece(float outerRadius, float innerRadius, VertexConsumer vertexConsumer, int overlay, int light, Matrix4f matrix, int i, float[] outerBandZs, float[] innerBandZs) {
         /*
-        *   We construct quads out of triangles for bendiness.
+        *   Quad fan thing.
         *
          */
 
-        // coordinate for > triangle's first point.
         float outerX = outerRadius * c[i];
         float outerY = outerRadius * s[i];
 
-        // coordinate for > triangle's top point.
         float nextOuterX = outerRadius * c[(i + 1) % ringSegmentCount];
         float nextOuterY = outerRadius * s[(i + 1) % ringSegmentCount];
 
-        // coordinates for > triangle's peak & < triangle's bottom point.
-        float innerX = (c[i] + (c[(i + 1) % ringSegmentCount] - c[i])/2) * innerRadius;
-        float innerY = (s[i] + (s[(i + 1) % ringSegmentCount] - s[i])/2) * innerRadius;
+        float innerX = innerRadius * c[i];
+        float innerY = innerRadius * s[i];
 
         // coordinate for < triangle's top point.
-        float nextInnerX = (c[(i + 1) % ringSegmentCount] + (c[(i + 2) % ringSegmentCount] - c[(i + 1) % ringSegmentCount])/2) * innerRadius;
-        float nextInnerY = (s[(i + 1) % ringSegmentCount] + (s[(i + 2) % ringSegmentCount] - s[(i + 1) % ringSegmentCount])/2) * innerRadius;
+        float nextInnerX = innerRadius * c[(i + 1) % ringSegmentCount];
+        float nextInnerY = innerRadius * s[(i + 1) % ringSegmentCount];
 
         float outerZ = outerBandZs[i];
-        float innerZ = innerBandZs[i] + (innerBandZs[(i+1) % innerBandZs.length] - innerBandZs[i])/2; // Inner z is between points.
+        float innerZ = innerBandZs[i];
         float nextOuterZ = outerBandZs[(i+1) % outerBandZs.length];
-        float nextInnerZ = innerBandZs[(i+1) % innerBandZs.length] + (innerBandZs[(i+2) % innerBandZs.length] - innerBandZs[(i+1) % innerBandZs.length])/2;
+        float nextInnerZ = innerBandZs[(i+1) % innerBandZs.length];
+
+        float u = (outerX + ringInnerRadius), v = (outerY + ringInnerRadius);
+        float u1 = (nextOuterX + ringInnerRadius), v1 = (nextOuterY + ringInnerRadius);
+        float u2 = (nextInnerX + ringInnerRadius), v2 = (nextInnerY + ringInnerRadius);
+        float u3 = (innerX + ringInnerRadius), v3 = (innerY + ringInnerRadius);
 
         // Inner triangle.
-        vertex(matrix, vertexConsumer, outerX, outerY, outerZ, 0, 0, 1, 0, 0, overlay, light); // outer I z
-        vertex(matrix, vertexConsumer, innerX, innerY, innerZ, 0, 0, 1, 0, 0, overlay, light); // inner I z
-        vertex(matrix, vertexConsumer, nextOuterX, nextOuterY, nextOuterZ, 0, 0, 1, 0, 0, overlay, light); // outer I+1 z
+        vertex(matrix, vertexConsumer, outerX, outerY, outerZ, 0, 0, 0, u, v, overlay, light);
+        vertex(matrix, vertexConsumer, nextOuterX, nextOuterY, nextOuterZ, 0, 0, 0, u1, v1, overlay, light);
+        vertex(matrix, vertexConsumer, nextInnerX, nextInnerY, nextInnerZ, 0, 0, 0, u2, v2, overlay, light);
+        vertex(matrix, vertexConsumer, innerX, innerY, innerZ, 0, 0, 0, u3, v3, overlay, light);
 
-        // Outer triangle.
-        vertex(matrix, vertexConsumer, nextOuterX, nextOuterY, outerZ, 0, 0, 1, 0, 0, overlay, light); // outer I+1 z
-        vertex(matrix, vertexConsumer, nextInnerX, nextInnerY, nextInnerZ, 0, 0, 1, 0, 0, overlay, light); // inner I+1 z
-        vertex(matrix, vertexConsumer, innerX, innerY, innerZ, 0, 0, 1, 0, 0, overlay, light); // inner I z
     }
 
     void vertex(Matrix4f matrix4f, VertexConsumer vertexConsumer, float x, float y, float z, float nX, float nY, float nZ, float u, float v, int overlay, int light) {
