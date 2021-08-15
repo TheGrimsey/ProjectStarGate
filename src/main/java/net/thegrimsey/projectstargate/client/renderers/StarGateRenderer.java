@@ -29,7 +29,7 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
     final static Identifier TEXTURE_HORIZON = new Identifier(ProjectStarGate.MODID, "textures/blockentity/eventhorizon.png");
 
     final static RenderLayer HORIZON_LAYER = Util.memoize((texture) -> {
-        RenderLayer.MultiPhaseParameters multiPhaseParameters = RenderLayer.MultiPhaseParameters.builder().shader(RenderPhase.ENTITY_CUTOUT_SHADER).texture(new RenderPhase.Texture((Identifier) texture, false, false)).transparency(RenderPhase.NO_TRANSPARENCY).cull(RenderPhase.DISABLE_CULLING).lightmap(RenderPhase.ENABLE_LIGHTMAP).overlay(RenderPhase.ENABLE_OVERLAY_COLOR).build(true);
+        RenderLayer.MultiPhaseParameters multiPhaseParameters = RenderLayer.MultiPhaseParameters.builder().shader(RenderPhase.ENTITY_CUTOUT_SHADER).texture(new RenderPhase.Texture((Identifier) texture, false, false)).transparency(RenderPhase.TRANSLUCENT_TRANSPARENCY).cull(RenderPhase.DISABLE_CULLING).lightmap(RenderPhase.ENABLE_LIGHTMAP).overlay(RenderPhase.ENABLE_OVERLAY_COLOR).build(true);
         return RenderLayerMultiPhaseAccessor.of("horizon_layer", VertexFormats.POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL, VertexFormat.DrawMode.QUADS, 256, true, false, multiPhaseParameters);
     }).apply(TEXTURE_HORIZON);
 
@@ -285,17 +285,21 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
         //matrices.translate(0,0,1); // DEBUG.
         Matrix4f matrix = matrices.peek().getModel();
 
-        for(int i = 0; i < ringSegmentCount; i++)
+        int bands = entity.eventHorizonZ.length-1;
+        for(int band = 0; band < bands; band++)
         {
-            renderEventHorizonPiece(ringInnerRadius, ringInnerRadius * 0.5f, vertexConsumer, overlay, light, matrix, i, entity.eventHorizonZ[0], entity.eventHorizonZ[1]);
-            renderEventHorizonPiece(ringInnerRadius * 0.5f, ringInnerRadius * 0.25f, vertexConsumer, overlay, light, matrix, i, entity.eventHorizonZ[1], entity.eventHorizonZ[2]);
-            renderEventHorizonPiece(ringInnerRadius * 0.25f, 0.0f, vertexConsumer, overlay, light, matrix, i, entity.eventHorizonZ[2], entity.eventHorizonZ[2]);
+            float outerRadius = ringInnerRadius * ((float)(bands - band) / bands);
+            float innerRadius = ringInnerRadius * ((float)(bands - 1 - band) / bands);
+            for(int i = 0; i < ringSegmentCount; i++)
+            {
+                renderEventHorizonPiece(outerRadius, innerRadius, vertexConsumer, overlay, light, matrix, i, entity.eventHorizonZ[band], entity.eventHorizonZ[band+1], 0, 0);
+            }
         }
 
         matrices.pop();
     }
 
-    private void renderEventHorizonPiece(float outerRadius, float innerRadius, VertexConsumer vertexConsumer, int overlay, int light, Matrix4f matrix, int i, float[] outerBandZs, float[] innerBandZs) {
+    private void renderEventHorizonPiece(float outerRadius, float innerRadius, VertexConsumer vertexConsumer, int overlay, int light, Matrix4f matrix, int i, float[] outerBandZs, float[] innerBandZs, float uOffset, float vOffset) {
         /*
         *   Quad fan thing.
         *
@@ -315,14 +319,14 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
         float nextInnerY = innerRadius * s[(i + 1) % ringSegmentCount];
 
         float outerZ = outerBandZs[i];
-        float innerZ = innerBandZs[i];
+        float innerZ = innerBandZs[i % innerBandZs.length];
         float nextOuterZ = outerBandZs[(i+1) % outerBandZs.length];
         float nextInnerZ = innerBandZs[(i+1) % innerBandZs.length];
 
-        float u = (outerX + ringInnerRadius), v = (outerY + ringInnerRadius);
-        float u1 = (nextOuterX + ringInnerRadius), v1 = (nextOuterY + ringInnerRadius);
-        float u2 = (nextInnerX + ringInnerRadius), v2 = (nextInnerY + ringInnerRadius);
-        float u3 = (innerX + ringInnerRadius), v3 = (innerY + ringInnerRadius);
+        float u = outerX + uOffset, v = outerY + vOffset;
+        float u1 = nextOuterX + uOffset, v1 = nextOuterY + vOffset;
+        float u2 = nextInnerX + uOffset, v2 = nextInnerY + vOffset;
+        float u3 = innerX + uOffset, v3 = innerY + vOffset;
 
         // Inner triangle.
         vertex(matrix, vertexConsumer, outerX, outerY, outerZ, 0, 0, 0, u, v, overlay, light);

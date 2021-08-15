@@ -14,7 +14,6 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.screen.ScreenHandler;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -38,6 +37,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 
 public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientSerializable, ExtendedScreenHandlerFactory {
     static double rotationSpeed = 2.0;
@@ -65,25 +65,37 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     @Environment(EnvType.CLIENT)
     public float currentRingRotation = 0.f;
     @Environment(EnvType.CLIENT)
-    public float lastRingRotation = 0.f;
+    float lastRingRotation = 0.f;
     @Environment(EnvType.CLIENT)
     public float[][] eventHorizonZ; // Event Horizon Z positions. Initial array is band.
+    @Environment(EnvType.CLIENT)
+    int eventHorizonMovingPointsCount = 0; // Count not including outer layer.
+    @Environment(EnvType.CLIENT)
+    static Random random = new Random(); // For event horizon.
 
     public SGBaseBlockEntity(BlockPos pos, BlockState state) {
         super(ProjectSGBlocks.SG_BASE_BLOCKENTITY, pos, state);
 
         if(FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT)
         {
-            eventHorizonZ = new float[3][StarGateRenderer.ringSegmentCount];
+            eventHorizonZ = new float[4][];
+            eventHorizonZ[0] = new float[StarGateRenderer.ringSegmentCount];
+            eventHorizonZ[1] = new float[StarGateRenderer.ringSegmentCount];
+            eventHorizonZ[2] = new float[StarGateRenderer.ringSegmentCount];
+            eventHorizonZ[3] = new float[1]; // Final middle point.
+
+            for(int i = 0; i < eventHorizonZ.length - 1; i++) eventHorizonMovingPointsCount += eventHorizonZ[i+1].length;
         }
     }
 
     public static void tick(World world, BlockPos blockPos, BlockState blockState, BlockEntity blockEntity) {
-        if (world != null) {
+        if (world != null && blockEntity instanceof SGBaseBlockEntity baseBlockEntity) {
+            baseBlockEntity.ticksInState++;
+
             if (world.isClient()) {
-                ((SGBaseBlockEntity) blockEntity).clientUpdate();
+                baseBlockEntity.clientUpdate();
             } else {
-                ((SGBaseBlockEntity) blockEntity).serverUpdate();
+                baseBlockEntity.serverUpdate();
             }
         }
 
@@ -137,7 +149,10 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         merged = tag.getBoolean("merged");
         dimensionalUpgrade = tag.getBoolean("dimensionalUpgrade");
 
-        gateState = StarGateState.fromID(tag.getByte("state"));
+        StarGateState state = StarGateState.fromID(tag.getByte("state"));
+        if(state != gateState)
+            changeState(state);
+
         ringRotation = tag.getFloat("ringRotation");
         engagedChevrons = tag.getByte("engagedChevrons");
     }
@@ -157,14 +172,24 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
             case IDLE:
                 break;
             case CONNECTED: {
-                /*
-                for(int band = 0; band < eventHorizonZ.length; band++)
                 {
-                    for(int i = 0; i < eventHorizonZ[band].length; i++)
-                    {
-                        eventHorizonZ[band][i] = (float)(i*band) / StarGateRenderer.ringSegmentCount / 2;
+                    int i = random.nextInt(eventHorizonMovingPointsCount);
+                    int currentBand = 1;
+
+                    while (i >= eventHorizonZ[currentBand].length) {
+                        i -= eventHorizonZ[currentBand].length;
+                        currentBand++;
                     }
-                }*/
+
+                    eventHorizonZ[currentBand][i] += random.nextGaussian() * 0.05f;
+                }
+
+                for(int band = 1; band < eventHorizonZ.length; band++) {
+                    for(int i = 0; i < eventHorizonZ[band].length; i++) {
+                        eventHorizonZ[band][i] *= 0.98f;
+                    }
+                }
+
             }
                 break;
             case DIALING: {
@@ -189,8 +214,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
             connect();
             needsInitialization = false;
         }
-
-        ticksInState++;
 
         switch (gateState) {
             case IDLE:
@@ -456,5 +479,9 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     @Override
     public ScreenHandler createMenu(int syncId, PlayerInventory inv, PlayerEntity player) {
         return new StargateScreenHandler(syncId, inv, this.getPos());
+    }
+
+    public int getTicksInState() {
+        return ticksInState;
     }
 }
