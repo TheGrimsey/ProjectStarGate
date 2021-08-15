@@ -1,7 +1,5 @@
 package net.thegrimsey.projectstargate.client.renderers;
 
-import com.mojang.blaze3d.platform.GlStateManager;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.render.*;
 import net.minecraft.client.render.block.entity.BlockEntityRenderer;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactory;
@@ -14,7 +12,6 @@ import net.minecraft.util.math.Vec3f;
 import net.thegrimsey.projectstargate.ProjectStarGate;
 import net.thegrimsey.projectstargate.blocks.entity.SGBaseBlockEntity;
 import net.thegrimsey.projectstargate.mixin.RenderLayerMultiPhaseAccessor;
-import org.lwjgl.opengl.GL32;
 
 /*
  *   Primarily based on original SGCraft implementation.
@@ -48,17 +45,6 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
     final static float chevronBorderWidth = chevronWidth / 6f;
     final static float chevronMotionDistance = 1 / 8.0f;
     final static double numIrisBlades = 12;
-
-    final static int ehGridRadialSize = 5;
-    final static int ehGridPolarSize = ringSegmentCount;
-    final static double ehBandWidth = ringInnerRadius / ehGridRadialSize;
-
-    final static int ehBands = 4;
-
-    static int[][] chevronEngagementSequences = {
-            {9, 3, 4, 5, 6, 0, 1, 2, 9}, // 7 symbols (9 = never enganged)
-            {7, 3, 4, 5, 8, 0, 1, 2, 6}  // 9 symbols
-    };
 
     static float[] s = new float[ringSegmentCount + 1];
     static float[] c = new float[ringSegmentCount + 1];
@@ -112,7 +98,7 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
         renderRing((float) (ringMidRadius - ringOverlap), ringOuterRadius, ringZOffset, matrices.peek().getModel(), ringVertexConsumer, overlay, light, false);
 
         // Render inner ring.
-        matrices.push(); // It gets it's own matrix so we can rotate it.
+        matrices.push(); // It gets its own matrix, so we can rotate it.
         matrices.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(entity.currentRingRotation));
         renderRing(ringInnerRadius, ringMidRadius, 0, matrices.peek().getModel(), ringVertexConsumer, overlay, light, true);
         matrices.pop();
@@ -123,10 +109,13 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
         VertexConsumer chevronVertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(TEXTURE_CHEVRON));
         renderChevrons(entity, matrices, chevronVertexConsumer, overlay, light);
 
-        TEXTURE_WIDTH = 1;
-        TEXTURE_HEIGHT = 1;
-        VertexConsumer horizonVertexConsumer = vertexConsumers.getBuffer(HORIZON_LAYER);
-        renderEventHorizon(entity, tickDelta, matrices, horizonVertexConsumer, overlay, light);
+        if(entity.isConnected())
+        {
+            TEXTURE_WIDTH = 1;
+            TEXTURE_HEIGHT = 1;
+            VertexConsumer horizonVertexConsumer = vertexConsumers.getBuffer(HORIZON_LAYER);
+            renderEventHorizon(entity, matrices, horizonVertexConsumer, overlay);
+        }
     }
 
     void renderChevrons(SGBaseBlockEntity entity, MatrixStack matrices, VertexConsumer vertexConsumer, int overlay, int light) {
@@ -279,10 +268,10 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
         vertex(matrix4f, vertexConsumer, xTop, yOuter, zFlat, 0, 0, 1, 120, 8, overlay, light);
     }
 
-    void renderEventHorizon(SGBaseBlockEntity entity, float tickDelta, MatrixStack matrices, VertexConsumer vertexConsumer, int overlay, int light)
+    void renderEventHorizon(SGBaseBlockEntity entity, MatrixStack matrices, VertexConsumer vertexConsumer, int overlay)
     {
+        int light = 0xF000F0; // Full brightness.
         matrices.push();
-        //matrices.translate(0,0,1); // DEBUG.
         Matrix4f matrix = matrices.peek().getModel();
 
         int bands = entity.eventHorizonZ.length-1;
@@ -292,14 +281,14 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
             float innerRadius = ringInnerRadius * ((float)(bands - 1 - band) / bands);
             for(int i = 0; i < ringSegmentCount; i++)
             {
-                renderEventHorizonPiece(outerRadius, innerRadius, vertexConsumer, overlay, light, matrix, i, entity.eventHorizonZ[band], entity.eventHorizonZ[band+1], 0, 0);
+                renderEventHorizonPiece(outerRadius, innerRadius, vertexConsumer, overlay, light, matrix, i, entity.eventHorizonZ[band], entity.eventHorizonZ[band+1]);
             }
         }
 
         matrices.pop();
     }
 
-    private void renderEventHorizonPiece(float outerRadius, float innerRadius, VertexConsumer vertexConsumer, int overlay, int light, Matrix4f matrix, int i, float[] outerBandZs, float[] innerBandZs, float uOffset, float vOffset) {
+    private void renderEventHorizonPiece(float outerRadius, float innerRadius, VertexConsumer vertexConsumer, int overlay, int light, Matrix4f matrix, int i, float[] outerBandZs, float[] innerBandZs) {
         /*
         *   Quad fan thing.
         *
@@ -323,10 +312,10 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
         float nextOuterZ = outerBandZs[(i+1) % outerBandZs.length];
         float nextInnerZ = innerBandZs[(i+1) % innerBandZs.length];
 
-        float u = outerX + uOffset, v = outerY + vOffset;
-        float u1 = nextOuterX + uOffset, v1 = nextOuterY + vOffset;
-        float u2 = nextInnerX + uOffset, v2 = nextInnerY + vOffset;
-        float u3 = innerX + uOffset, v3 = innerY + vOffset;
+        float u = outerX, v = outerY;
+        float u1 = nextOuterX, v1 = nextOuterY;
+        float u2 = nextInnerX, v2 = nextInnerY;
+        float u3 = innerX, v3 = innerY;
 
         // Inner triangle.
         vertex(matrix, vertexConsumer, outerX, outerY, outerZ, 0, 0, 0, u, v, overlay, light);
@@ -341,6 +330,6 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
     }
 
     void vertex(Matrix4f matrix4f, VertexConsumer vertexConsumer, float x, float y, float z, float nX, float nY, float nZ, float u, float v, int overlay, int light, float r, float g, float b) {
-        vertexConsumer.vertex(matrix4f, x, y, z).color(r, g, b, 1.0f).texture((float) (u / TEXTURE_WIDTH), v / TEXTURE_HEIGHT).overlay(overlay).light(light).normal(nX, nY, nZ).next();
+        vertexConsumer.vertex(matrix4f, x, y, z).color(r, g, b, 1.0f).texture(u / TEXTURE_WIDTH, v / TEXTURE_HEIGHT).overlay(overlay).light(light).normal(nX, nY, nZ).next();
     }
 }

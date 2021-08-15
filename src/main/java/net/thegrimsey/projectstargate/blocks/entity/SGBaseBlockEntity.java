@@ -78,11 +78,10 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
         if(FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT)
         {
-            eventHorizonZ = new float[4][];
-            eventHorizonZ[0] = new float[StarGateRenderer.ringSegmentCount];
-            eventHorizonZ[1] = new float[StarGateRenderer.ringSegmentCount];
-            eventHorizonZ[2] = new float[StarGateRenderer.ringSegmentCount];
-            eventHorizonZ[3] = new float[1]; // Final middle point.
+            eventHorizonZ = new float[5][]; // So much data.
+            for(int i = 0; i < eventHorizonZ.length-1; i++)
+                eventHorizonZ[i] = new float[StarGateRenderer.ringSegmentCount];
+            eventHorizonZ[eventHorizonZ.length-1] = new float[1]; // Final middle point.
 
             for(int i = 0; i < eventHorizonZ.length - 1; i++) eventHorizonMovingPointsCount += eventHorizonZ[i+1].length;
         }
@@ -181,15 +180,11 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
                         currentBand++;
                     }
 
-                    eventHorizonZ[currentBand][i] += random.nextGaussian() * 0.05f;
-                }
+                    double zMovement = random.nextGaussian() * 0.05f;
+                    eventHorizonZ[currentBand][i] += zMovement;
 
-                for(int band = 1; band < eventHorizonZ.length; band++) {
-                    for(int i = 0; i < eventHorizonZ[band].length; i++) {
-                        eventHorizonZ[band][i] *= 0.98f;
-                    }
+                    updateEventHorizon();
                 }
-
             }
                 break;
             case DIALING: {
@@ -286,8 +281,27 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         }
     }
 
+    @Environment(EnvType.CLIENT)
     public float getInterpolatedRingRotation(float tickDelta) {
         return (currentRingRotation + (30.f / 20.f) * tickDelta) % 360;
+    }
+
+    @Environment(EnvType.CLIENT)
+    void updateEventHorizon() {
+        /*
+        *   Replicating the original mod's version was too hard. I do not understand it at all. I also don't do the event horizon the same way anyway so.
+        *
+        *   This gives a nice enough effect really.
+         */
+
+        for(int band = 1; band < eventHorizonZ.length; band++)
+        {
+            for(int i = 0; i < eventHorizonZ[band].length; i++)
+            {
+                eventHorizonZ[band][i] *= 0.98f;
+            }
+        }
+
     }
 
     Box getTeleportBounds() {
@@ -308,8 +322,11 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         return getCachedState().get(SGBaseBlock.FACING);
     }
 
-    public boolean isConnected() {
+    public boolean isActive() {
         return gateState != StarGateState.IDLE;
+    }
+    public boolean isConnected() {
+        return gateState == StarGateState.CONNECTED;
     }
 
     public boolean notMerged() {

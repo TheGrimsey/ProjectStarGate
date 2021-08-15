@@ -33,7 +33,7 @@ public class DHDScreen extends HandledScreen<DHDScreenHandler> {
     @Override
     protected void drawBackground(MatrixStack matrices, float delta, int mouseX, int mouseY) {
         DHDBlockEntity dhdBlockEntity = handler.getDHD();
-        boolean isConnected = dhdBlockEntity.hasGate() && dhdBlockEntity.getGate().isConnected();
+        boolean isActive = dhdBlockEntity.hasGate() && dhdBlockEntity.getGate().isActive();
 
         // Draw background / main console.
         RenderSystem.setShaderTexture(0, DHD_TEXTURE);
@@ -49,7 +49,7 @@ public class DHDScreen extends HandledScreen<DHDScreenHandler> {
 
         if(dhdBlockEntity.hasGate() && !dhdBlockEntity.getGate().notMerged())
         {
-            if(isConnected)
+            if(isActive)
                 RenderSystem.setShaderColor(1.0f, 0.5f, 0.0f, 1.0f);
             else
                 RenderSystem.setShaderColor(0.5f, 0.25f, 0.0f, 1.0f);
@@ -60,7 +60,7 @@ public class DHDScreen extends HandledScreen<DHDScreenHandler> {
         drawTexture(matrices, buttonX, buttonY, buttonWidth, buttonHeight, 64, 0, 64, 64, 128, 64);
 
         // Draw light up outline if connected.
-        if(isConnected)
+        if(isActive)
         {
             RenderSystem.blendFunc(GL11.GL_ONE, GL11.GL_ONE);
             int d = 5;
