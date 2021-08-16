@@ -9,6 +9,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.thegrimsey.projectstargate.blocks.entity.DHDBlockEntity;
 import net.thegrimsey.projectstargate.blocks.entity.SGBaseBlockEntity;
+import net.thegrimsey.projectstargate.utils.StarGateDialingResponse;
 
 public class DialDHDChannelHandler implements ServerPlayNetworking.PlayChannelHandler {
     @Override
@@ -21,7 +22,11 @@ public class DialDHDChannelHandler implements ServerPlayNetworking.PlayChannelHa
             if(canReachDHD && player.getServerWorld().getBlockEntity(dhdPos) instanceof DHDBlockEntity blockEntity)
             {
                 if(player.getServerWorld().getBlockEntity(blockEntity.getStargatePos()) instanceof SGBaseBlockEntity stargate)
-                    stargate.dial(address);
+                {
+                    StarGateDialingResponse response = stargate.dial(address);
+
+                    StarGateDialingResponse.HandleResponse(player, response);
+                }
             }
         });
     }

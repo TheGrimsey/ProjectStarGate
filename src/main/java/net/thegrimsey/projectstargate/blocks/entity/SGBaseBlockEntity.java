@@ -31,6 +31,7 @@ import net.thegrimsey.projectstargate.client.renderers.StarGateRenderer;
 import net.thegrimsey.projectstargate.screens.StargateScreenHandler;
 import net.thegrimsey.projectstargate.utils.AddressingUtil;
 import net.thegrimsey.projectstargate.networking.GlobalAddressStorage;
+import net.thegrimsey.projectstargate.utils.StarGateDialingResponse;
 import net.thegrimsey.projectstargate.utils.StarGateState;
 import net.thegrimsey.projectstargate.utils.WorldUtils;
 import org.jetbrains.annotations.Nullable;
@@ -353,15 +354,15 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         }
     }
 
-    public void dial(long dialingAddress) {
+    public StarGateDialingResponse dial(long dialingAddress) {
         if (dialingAddress == address) {
             System.out.println("Dialing failed. Can't dial self: " + address);
-            return;
+            return StarGateDialingResponse.CANT_DIAL_SELF;
         }
 
         // If we are connected/dialing try to disconnect. If disconnect fails return.
         if(gateState != StarGateState.IDLE && !disconnect(false))
-            return;
+            return StarGateDialingResponse.SELF_IS_REMOTE_CANT_DISCONNECT;
 
         // Restrict cross-dimensional dialing without upgrade.
         if(!dimensionalUpgrade)
@@ -370,24 +371,20 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
             byte selfDimension =  (byte) (address / 36 / 36 / 36 / 36 / 36 / 36 / 36 / 36);
 
             if(targetDimension != selfDimension)
-            {
-                System.out.println("Can't dial other dimension without dimensional upgrade.");
-                return;
-            }
+                return StarGateDialingResponse.SELF_REQUIRES_DIMENSIONAL_UPGRADE;
         }
 
         // Check if homeAddress is already locked & if dialingAddress is as well.
         GlobalAddressStorage globalAddressStorage = GlobalAddressStorage.getInstance(world.getServer());
         if (globalAddressStorage.isAddressLocked(address) || globalAddressStorage.isAddressLocked(dialingAddress)) {
             //FAILED. Can't dial a locked address.
-            System.out.println("Dialing failed. One of the following addresses is already locked: " + address + ", " + dialingAddress);
-            return;
+            return StarGateDialingResponse.REMOTE_LOCKED;
         }
 
         // Check if remote gate is connected. If so we just instantly fail.
         Pair<BlockPos, World> target = WorldUtils.getPosAndWorldForAddress(world.getServer(), dialingAddress);
         if (target == null)
-            return;
+            return StarGateDialingResponse.INVALID_REMOTE_ADDRESS;
 
         // Load target chunk
         target.getRight().getChunk(pos.getX() >> 4, pos.getZ() >> 4);
@@ -396,7 +393,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         BlockEntity remoteBlockEntity = target.getRight().getBlockEntity(target.getLeft());
         if (!(remoteBlockEntity instanceof SGBaseBlockEntity)) {
             GlobalAddressStorage.getInstance(world.getServer()).removeAddress(dialingAddress, target.getLeft()); // Remove address location since there isn't actually a stargate there.
-            return;
+            return StarGateDialingResponse.REMOTE_INVALID;
         }
 
         // Keep target chunks loaded.
@@ -415,6 +412,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         globalAddressStorage.lockAddress(remoteAddress);
 
         sync();
+        return StarGateDialingResponse.SUCCESS;
     }
 
     void connect() {

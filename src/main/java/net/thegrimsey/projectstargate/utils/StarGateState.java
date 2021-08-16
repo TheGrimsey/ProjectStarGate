@@ -15,3 +15,4 @@ public enum StarGateState {
         return enumValues[id];
     }
 }
+
