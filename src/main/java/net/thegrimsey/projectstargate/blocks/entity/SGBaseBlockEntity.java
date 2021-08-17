@@ -28,20 +28,19 @@ import net.minecraft.world.World;
 import net.thegrimsey.projectstargate.ProjectSGBlocks;
 import net.thegrimsey.projectstargate.blocks.SGBaseBlock;
 import net.thegrimsey.projectstargate.client.renderers.StarGateRenderer;
+import net.thegrimsey.projectstargate.networking.GlobalAddressStorage;
 import net.thegrimsey.projectstargate.screens.StargateScreenHandler;
 import net.thegrimsey.projectstargate.utils.AddressingUtil;
-import net.thegrimsey.projectstargate.networking.GlobalAddressStorage;
 import net.thegrimsey.projectstargate.utils.StarGateDialingResponse;
 import net.thegrimsey.projectstargate.utils.StarGateState;
 import net.thegrimsey.projectstargate.utils.WorldUtils;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
 public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientSerializable, ExtendedScreenHandlerFactory {
-    static double rotationSpeed = 2.0;
+    static float rotationSpeedDegrees = 30.0f;
     static double angleBetweenSymbols = 360.0 / AddressingUtil.GLYPH_COUNT;
 
     public long address = -1;
@@ -59,7 +58,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     int ticksInState = 0;
 
     SGBaseBlockEntity remoteGate;
-    boolean needsInitialization = false;
+    boolean needsConnectionInitialization = false;
     Box cachedBounds = null;
 
     // Client visuals.
@@ -70,6 +69,8 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     @Environment(EnvType.CLIENT)
     public float[][] eventHorizonZ; // Event Horizon Z positions. Initial array is band.
     @Environment(EnvType.CLIENT)
+    float[][] eventHorizonZVelocity; // Event Horizon Z velocity. Initial array is band.
+    @Environment(EnvType.CLIENT)
     int eventHorizonMovingPointsCount = 0; // Count not including outer layer.
     @Environment(EnvType.CLIENT)
     static Random random = new Random(); // For event horizon.
@@ -77,14 +78,23 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     public SGBaseBlockEntity(BlockPos pos, BlockState state) {
         super(ProjectSGBlocks.SG_BASE_BLOCKENTITY, pos, state);
 
-        if(FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT)
-        {
+        if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
             eventHorizonZ = new float[5][]; // So much data.
-            for(int i = 0; i < eventHorizonZ.length-1; i++)
-                eventHorizonZ[i] = new float[StarGateRenderer.ringSegmentCount];
-            eventHorizonZ[eventHorizonZ.length-1] = new float[1]; // Final middle point.
+            eventHorizonZVelocity = new float[eventHorizonZ.length][]; // So much data
 
-            for(int i = 0; i < eventHorizonZ.length - 1; i++) eventHorizonMovingPointsCount += eventHorizonZ[i+1].length;
+            //Initialize points
+            for (int i = 0; i < eventHorizonZ.length - 1; i++)
+            {
+                eventHorizonZ[i] = new float[StarGateRenderer.ringSegmentCount];
+                eventHorizonZVelocity[i] = new float[StarGateRenderer.ringSegmentCount];
+            }
+            eventHorizonZ[eventHorizonZ.length - 1] = new float[1]; // Final middle point.
+            eventHorizonZVelocity[eventHorizonZVelocity.length - 1] = new float[1]; // Final middle point.
+
+
+            // Count points
+            for (int i = 1; i < eventHorizonZ.length; i++)
+                eventHorizonMovingPointsCount += eventHorizonZ[i].length;
         }
     }
 
@@ -92,11 +102,10 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         if (world != null && blockEntity instanceof SGBaseBlockEntity baseBlockEntity) {
             baseBlockEntity.ticksInState++;
 
-            if (world.isClient()) {
+            if (world.isClient())
                 baseBlockEntity.clientUpdate();
-            } else {
+            else
                 baseBlockEntity.serverUpdate();
-            }
         }
 
     }
@@ -112,6 +121,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         if (gateState != StarGateState.IDLE) {
             tag.putLong("remoteAddress", remoteAddress);
             tag.putBoolean("isRemote", isRemote);
+            tag.putShort("engagedChevrons", engagedChevrons);
         }
         return tag;
     }
@@ -127,8 +137,9 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         if (gateState != StarGateState.IDLE) {
             remoteAddress = tag.getLong("remoteAddress");
             isRemote = tag.getBoolean("isRemote");
+            engagedChevrons = tag.getByte("engagedChevrons");
 
-            needsInitialization = true;
+            needsConnectionInitialization = true;
         }
     }
 
@@ -150,9 +161,13 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         dimensionalUpgrade = tag.getBoolean("dimensionalUpgrade");
 
         StarGateState state = StarGateState.fromID(tag.getByte("state"));
-        if(state != gateState)
-            changeState(state);
+        if (state != gateState)
+        {
+            //if(state == StarGateState.CONNECTED)
+            //    applyOpeningPulse();
 
+            changeState(state);
+        }
         ringRotation = tag.getFloat("ringRotation");
         engagedChevrons = tag.getByte("engagedChevrons");
     }
@@ -171,22 +186,9 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         switch (gateState) {
             case IDLE:
                 break;
-            case CONNECTED: {
-                {
-                    int i = random.nextInt(eventHorizonMovingPointsCount);
-                    int currentBand = 1;
-
-                    while (i >= eventHorizonZ[currentBand].length) {
-                        i -= eventHorizonZ[currentBand].length;
-                        currentBand++;
-                    }
-
-                    double zMovement = random.nextGaussian() * 0.05f;
-                    eventHorizonZ[currentBand][i] += zMovement;
-
-                    updateEventHorizon();
-                }
-            }
+            case CONNECTED:
+                applyRandomImpulse();
+                updateEventHorizonNew();
                 break;
             case DIALING: {
                 /*
@@ -196,19 +198,19 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
                 if (Math.abs(currentRingRotation - ringRotation) > 10.f) {
                     float rotationDirection = engagedChevrons % 2 == 0 ? 1f : -1f;
 
-                    currentRingRotation = (ringRotation + (30.f/20.f) * rotationDirection) % 360;
+                    currentRingRotation = (ringRotation + (30.f / 20.f) * rotationDirection) % 360;
                 }
             }
-                break;
+            break;
             default:
                 assert false;
         }
     }
 
     private void serverUpdate() {
-        if (needsInitialization) {
+        if (needsConnectionInitialization) {
             connect();
-            needsInitialization = false;
+            needsConnectionInitialization = false;
         }
 
         switch (gateState) {
@@ -227,7 +229,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
     private void dialingUpdate() {
         // Rate limit to once every 20 ticks.
-        if (Objects.requireNonNull(world).getTime() % 20 == 0) {
+        if (world.getTime() % 20 == 0) {
             /*
              *   What we really want to do here is:
              *   - Check which chevron we are currently locking in.
@@ -268,7 +270,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
             // TODO Only allow teleport when walking in from front.
 
             // TODO figure out better way to do teleport. This plays nether portal sound :(
-            FabricDimensions.teleport(livingEntity, (ServerWorld)remoteGate.world,
+            FabricDimensions.teleport(livingEntity, (ServerWorld) remoteGate.world,
                     new TeleportTarget(
                             new Vec3d(remoteGate.getPos().getX(), remoteGate.getPos().getY() + 1, remoteGate.getPos().getZ()),
                             livingEntity.getVelocity(),
@@ -284,30 +286,139 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
     @Environment(EnvType.CLIENT)
     public float getInterpolatedRingRotation(float tickDelta) {
-        return (currentRingRotation + (30.f / 20.f) * tickDelta) % 360;
+        return (currentRingRotation + (rotationSpeedDegrees / 20.f) * tickDelta) % 360;
     }
 
     @Environment(EnvType.CLIENT)
     void updateEventHorizon() {
         /*
-        *   Replicating the original mod's version was too hard. I do not understand it at all. I also don't do the event horizon the same way anyway so.
-        *
-        *   This gives a nice enough effect really.
+         *   Replicating the original mod's update event horizon.
          */
+        // Apply random impulse.
+        applyRandomImpulse();
 
-        for(int band = 1; band < eventHorizonZ.length; band++)
-        {
-            for(int i = 0; i < eventHorizonZ[band].length; i++)
-            {
-                eventHorizonZ[band][i] *= 0.98f;
+        float[][] currentZ = eventHorizonZ;
+        float[][] velocity = eventHorizonZVelocity;
+
+        float m = eventHorizonZ.length;
+        float n = StarGateRenderer.ringSegmentCount;
+
+        float dt = 1.0f;
+        float asq = 0.03f; // ???
+        float d = 0.95f;
+
+        // Original mod lays out data as such:
+        // [32][5] where the outer array is index around and inner is band.
+        // Meanwhile we do the reverse.
+        // [5][32/1]
+        // We also appear to be sorting our bands in the reverse. Where we have 0 as the outermost they have 0 as the innermost.
+
+        for (int i = 1; i < m; i++)
+            for (int j = 1; j < n; j++) {
+
+                // Average of previous band & next. (0.5 * nextBand - previousBand)
+                double du_dr = 0.5 * (currentZ[j][i+1] - currentZ[j][i-1]);
+                // nextBand + previousBand - 2 * current;
+                double d2u_drsq = currentZ[j][i+1] - 2 * currentZ[j][i] + currentZ[j][i-1];
+                // nextIndex + previousIndex + 2 current
+                double d2u_dthsq = currentZ[j+1][i] - 2 * currentZ[j][i] + currentZ[j-1][i];
+
+                // d * velocity + (asq * dt) *(d2u_drsq + du_dr / band + d2u_dthsq / (band^2))
+                velocity[j][i] = (float) (d * velocity[j][i] + (asq * dt) * (d2u_drsq + du_dr / i + d2u_dthsq / (i * i)));
             }
+
+        // Add velocity * deltaTime onto current
+        for (int i = 1; i < m; i++)
+            for (int j = 1; j <= n; j++)
+                currentZ[j][i] += velocity[j][i] * dt;
+
+
+        // Sum of z for second to middle band.
+        float u0 = 0, v0 = 0;
+        for (int j = 1; j <= n; j++) {
+            u0 += currentZ[j][1];
+            v0 += velocity[j][1];
+        }
+        // Calculate average of second to middle band
+        u0 /= n;
+        v0 /= n;
+        // Set innermost band to average of second to innermost.
+        for (int j = 1; j <= n; j++) {
+            currentZ[j][0] = u0;
+            velocity[j][0] = v0;
         }
 
     }
 
-    Box getTeleportBounds() {
-        if(cachedBounds == null)
+    void applyRandomImpulse() {
+        int i = random.nextInt(eventHorizonMovingPointsCount);
+        int currentBand = 1;
+
+        while (i >= eventHorizonZVelocity[currentBand].length) {
+            i -= eventHorizonZVelocity[currentBand].length;
+            currentBand++;
+        }
+
+        eventHorizonZVelocity[currentBand][i] += random.nextGaussian() * 0.05f;
+    }
+
+    void updateEventHorizonNew()
+    {
+        float dt = 1.0f;
+        float asq = 0.03f; // ???
+        float d = 0.95f;
+
+        for(int band = 1; band < eventHorizonZ.length-1; band++)
         {
+            for(int i = 0; i < eventHorizonZ[band].length; i++)
+            {
+                // Half difference between previous band & next. (0.5 * nextBand - previousBand)
+                float halfDifference = 0.5f * (eventHorizonZ[band-1][i] - eventHorizonZ[band+1][i % eventHorizonZ[band+1].length]);
+
+                // nextBand + previousBand - 2 * current;
+                float d2u_drsq = eventHorizonZ[band-1][i] + eventHorizonZ[band+1][i % eventHorizonZ[band+1].length] - 2.0f * eventHorizonZ[band][i];
+
+                // nextIndex + previousIndex - 2 current
+                int nextIndex = (i+1) % eventHorizonZ[band].length;
+                int previousIndex = (i-1 + eventHorizonZ[band].length) % eventHorizonZ[band].length;
+                float d2u_dthsq = eventHorizonZ[band][nextIndex] + eventHorizonZ[band][previousIndex] - 2.0f * eventHorizonZ[band][i];
+
+                eventHorizonZVelocity[band][i] = d * eventHorizonZVelocity[band][i] + (asq * dt) * (d2u_drsq + halfDifference / band + d2u_dthsq / (band * band));
+            }
+        }
+
+        // Apply velocity to current.
+        for(int band = 1; band < eventHorizonZ.length; band++)
+            for(int i = 0; i < eventHorizonZ[band].length; i++)
+                eventHorizonZ[band][i] += eventHorizonZVelocity[band][i] * dt;
+
+        // Sum of z for second to middle band.
+        float u0 = 0, v0 = 0;
+        for (int i = 0; i < eventHorizonZ[eventHorizonZ.length-2].length; i++) {
+            u0 += eventHorizonZ[eventHorizonZ.length-2][i];
+            v0 += eventHorizonZVelocity[eventHorizonZ.length-2][i];
+        }
+        // Calculate average of second to middle band
+        u0 /= eventHorizonZ[eventHorizonZ.length-2].length;
+        v0 /= eventHorizonZ[eventHorizonZ.length-2].length;
+        // Set innermost band to average of second to innermost.
+        eventHorizonZ[eventHorizonZ.length-1][0] = u0;
+        eventHorizonZVelocity[eventHorizonZVelocity.length-1][0] = v0;
+    }
+
+    @Environment(EnvType.CLIENT)
+    void applyOpeningPulse()
+    {
+        for (int band = 1; band < eventHorizonZ.length; band++) {
+            for (int i = 0; i < eventHorizonZ[band].length; i++) {
+                float z = (float)(band+1) / (eventHorizonZ.length) * 5.0f;
+                eventHorizonZ[band][i] = (float) (z + (random.nextGaussian() * 0.2f));
+            }
+        }
+    }
+
+    Box getTeleportBounds() {
+        if (cachedBounds == null) {
             float minY = getPos().getY() + 1, maxY = getPos().getY() + 4;
             boolean onZ = getFacing() == Direction.WEST || getFacing() == Direction.EAST;
             float minX = getPos().getX() - (onZ ? 0 : 1), maxX = getPos().getX() + (onZ ? 0 : 1);
@@ -326,6 +437,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     public boolean isActive() {
         return gateState != StarGateState.IDLE;
     }
+
     public boolean isConnected() {
         return gateState == StarGateState.CONNECTED;
     }
@@ -361,16 +473,15 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         }
 
         // If we are connected/dialing try to disconnect. If disconnect fails return.
-        if(gateState != StarGateState.IDLE && !disconnect(false))
+        if (gateState != StarGateState.IDLE && !disconnect(false))
             return StarGateDialingResponse.SELF_IS_REMOTE_CANT_DISCONNECT;
 
         // Restrict cross-dimensional dialing without upgrade.
-        if(!dimensionalUpgrade)
-        {
-            byte targetDimension =  (byte) (dialingAddress / 36 / 36 / 36 / 36 / 36 / 36 / 36 / 36);
-            byte selfDimension =  (byte) (address / 36 / 36 / 36 / 36 / 36 / 36 / 36 / 36);
+        if (!dimensionalUpgrade) {
+            byte targetDimension = (byte) (dialingAddress / 36 / 36 / 36 / 36 / 36 / 36 / 36 / 36);
+            byte selfDimension = (byte) (address / 36 / 36 / 36 / 36 / 36 / 36 / 36 / 36);
 
-            if(targetDimension != selfDimension)
+            if (targetDimension != selfDimension)
                 return StarGateDialingResponse.SELF_REQUIRES_DIMENSIONAL_UPGRADE;
         }
 
@@ -490,13 +601,8 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         return new TranslatableText(getCachedState().getBlock().getTranslationKey());
     }
 
-    @Nullable
     @Override
     public ScreenHandler createMenu(int syncId, PlayerInventory inv, PlayerEntity player) {
         return new StargateScreenHandler(syncId, inv, this.getPos());
-    }
-
-    public int getTicksInState() {
-        return ticksInState;
     }
 }

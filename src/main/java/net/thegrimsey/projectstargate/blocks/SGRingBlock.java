@@ -10,7 +10,7 @@ public class SGRingBlock extends AbstractStarGateBlock {
     }
 
     @Override
-    boolean tryMerge(World world, BlockState state, BlockPos pos) {
+    void tryMerge(World world, BlockState state, BlockPos pos) {
         /* A ring block can be in one of 8 positions.
         *
         *  01234
@@ -38,12 +38,11 @@ public class SGRingBlock extends AbstractStarGateBlock {
 
             //On X.
             if(checkMergePattern(world, pos.getX() - xz, pos.getY() - y, pos.getZ(), false))
-                return true;
+                return;
             //On Z.
             if(checkMergePattern(world, pos.getX(), pos.getY() - y, pos.getZ() - xz, true))
-                return true;
+                return;
         }
 
-        return false;
     }
 }

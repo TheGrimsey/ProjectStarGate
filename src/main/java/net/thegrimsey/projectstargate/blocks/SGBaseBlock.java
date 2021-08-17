@@ -57,35 +57,30 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
     public void onBroken(WorldAccess world, BlockPos pos, BlockState state) {
         super.onBroken(world, pos, state);
 
+        if(world.isClient())
+            return;
+
         if (world.getBlockEntity(pos) instanceof SGBaseBlockEntity blockEntity)
             blockEntity.setMerged(false);
     }
 
     @Override
     public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
-
         if (!world.isClient()) {
-            ItemStack item = player.getStackInHand(hand);
-            if (item.isEmpty()) {
-                player.openHandledScreen((SGBaseBlockEntity) world.getBlockEntity(pos));
-
-                // Test code below.
-            } else if(item.getItem() == Items.BREAD) {
-                if (world.getBlockEntity(pos) instanceof SGBaseBlockEntity blockEntity){
+            if (world.getBlockEntity(pos) instanceof SGBaseBlockEntity blockEntity) {
+                ItemStack heldStack = player.getStackInHand(hand);
+                if (heldStack.isEmpty()) {
+                    player.openHandledScreen(blockEntity);
+                    // Test code below.
+                } else if (heldStack.getItem() == Items.BREAD) {
                     blockEntity.dimensionalUpgrade = !blockEntity.dimensionalUpgrade;
                     blockEntity.sync();
-                }
-            } else if (item.hasCustomName()) {
-                if (world.getBlockEntity(pos) instanceof SGBaseBlockEntity blockEntity)
-                    blockEntity.dial(AddressingUtil.ConvertAddressStringToLong(item.getName().asString()));
-            } else {
-                if (world.getBlockEntity(pos) instanceof SGBaseBlockEntity blockEntity)
+                } else {
                     blockEntity.disconnect(false);
+                }
             }
-
             return ActionResult.success(true);
         }
-
 
         return super.onUse(state, world, pos, player, hand, hit);
     }
@@ -103,7 +98,7 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
     }
 
     @Override
-    boolean tryMerge(World world, BlockState state, BlockPos pos) {
+    void tryMerge(World world, BlockState state, BlockPos pos) {
         // The base block is at the bottom-center of the stargate. Our facing matters, so we can quickly figure out where the bottom-left of the structure should be and go from there.
         int bX = pos.getX(), bY = pos.getY(), bZ = pos.getZ();
         boolean onZ = false;
@@ -119,7 +114,7 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
                 onZ = true;
                 break;
             default:
-                return false;
+                return;
         }
 
         BlockPos.Mutable blockPos = new BlockPos.Mutable();
@@ -133,10 +128,10 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
 
                 // Fail if this is the wrong block or if it is already merged with something.
                 if (blockState.getBlock() != expectedBlock)
-                    return false;
+                    return;
 
                 if (blockState.getBlock() instanceof AbstractStarGateBlock && blockState.get(MERGED))
-                    return false;
+                    return;
             }
         }
 
@@ -155,7 +150,6 @@ public class SGBaseBlock extends AbstractStarGateBlock implements BlockEntityPro
             sgBaseBlockEntity.setMerged(true);
             sgBaseBlockEntity.markDirty();
         }
-        return true;
     }
 
     @Nullable

@@ -63,7 +63,7 @@ public class DHDScreenHandler extends ScreenHandler {
 
     public void writeGlyph(byte glyph)
     {
-        if(glyph < 0 || glyph > AddressingUtil.GLYPH_COUNT || writeHead == getDHD().getGate().getChevronCount())
+        if(glyph < 0 || glyph > AddressingUtil.GLYPH_COUNT || writeHead >= getDHD().getGate().getChevronCount())
             return;
 
         playButtonClickSound();

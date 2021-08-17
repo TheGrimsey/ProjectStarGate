@@ -6,7 +6,6 @@ import net.minecraft.block.BlockState;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
 import net.thegrimsey.projectstargate.blocks.entity.SGBaseBlockEntity;
@@ -47,7 +46,7 @@ public abstract class AbstractStarGateBlock extends Block {
         }
     }
 
-    abstract boolean tryMerge(World world, BlockState state, BlockPos pos);
+    abstract void tryMerge(World world, BlockState state, BlockPos pos);
 
     protected boolean checkMergePattern(World world, int bX, int bY, int bZ, boolean onZ) {
         BlockPos.Mutable blockPos = new BlockPos.Mutable();

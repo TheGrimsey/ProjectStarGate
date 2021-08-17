@@ -31,12 +31,11 @@ public class AddressingUtil {
 
     public static long GetAddressForLocation(@NotNull ServerWorld world, @NotNull BlockPos pos) {
         byte[] address = new byte[ADDRESS_LENGTH];
-        //StringBuilder address = new StringBuilder(GLYPH_PER_COORDINATE + GLYPH_PER_COORDINATE + 1);
 
         byte[] xAddress = ConvertCoordinateToAddress(pos.getX());
         byte[] zAddress = ConvertCoordinateToAddress(pos.getZ());
 
-        // Manually unrolled loop for interleaving coordinates.
+        // Manually unrolled loop for interleaving coordinates. Does it perform better? Meh, maybe.
         address[0] = xAddress[0];
         address[1] = zAddress[0];
         address[2] = xAddress[1];
@@ -59,7 +58,7 @@ public class AddressingUtil {
 
     /*
      *   Converts a coordinate to a 4 glyph long sequence.
-     *   Going from most significant to least significant glyph.
+     *   Going from the most significant to the least significant glyph.
      */
     private static byte[] ConvertCoordinateToAddress(int coordinate) {
         // Translate coordinate to region coordinate.
@@ -85,17 +84,6 @@ public class AddressingUtil {
         Identifier dimensionId = new Identifier(DimensionGlyphStorage.getInstance(server).GetDimensionIdentifierFromGlyph(glyph));
 
         return server.getWorld(RegistryKey.of(Registry.WORLD_KEY,dimensionId));
-    }
-
-    public static long ConvertAddressStringToLong(String address)
-    {
-        byte[] tempBytes = new byte[ADDRESS_LENGTH];
-        for(int i = 0; i < address.length() && i < ADDRESS_LENGTH; i++)
-        {
-            tempBytes[i] = (byte) GLYPHS.indexOf(address.charAt(i));
-        }
-
-        return ConvertAddressBytesToLong(tempBytes);
     }
 
     public static long ConvertAddressBytesToLong(byte[] address)
