@@ -46,8 +46,8 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
     final static float chevronMotionDistance = 1 / 8.0f;
     final static double numIrisBlades = 12;
 
-    static float[] s = new float[ringSegmentCount + 1];
-    static float[] c = new float[ringSegmentCount + 1];
+    static final float[] s = new float[ringSegmentCount + 1];
+    static final float[] c = new float[ringSegmentCount + 1];
 
     static {
         for (int i = 0; i <= ringSegmentCount; i++) {
@@ -99,7 +99,7 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
 
         // Render inner ring.
         matrices.push(); // It gets its own matrix, so we can rotate it.
-        matrices.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(entity.currentRingRotation));
+        matrices.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(entity.getInterpolatedRingRotation(tickDelta)));
         renderRing(ringInnerRadius, ringMidRadius, 0, matrices.peek().getModel(), ringVertexConsumer, overlay, light, true);
         matrices.pop();
 
@@ -163,12 +163,12 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
 
             // Draw front.
             {
-                float u = (inner ? 29 * i : 32), uwidth = (inner ? 29 : 32);
-                float v = (inner ? 35 : 0), vheight = 28;
-                vertex(matrix4f, vertexConsumer, innerRadiusX, innerRadiusY, z, 0, 0, 1, u, v + vheight, overlay, light);
+                float u = (inner ? 29 * i : 32), uWidth = (inner ? 29 : 32);
+                float v = (inner ? 35 : 0), vHeight = 28;
+                vertex(matrix4f, vertexConsumer, innerRadiusX, innerRadiusY, z, 0, 0, 1, u, v + vHeight, overlay, light);
                 vertex(matrix4f, vertexConsumer, outerRadiusX, outerRadiusY, z, 0, 0, 1, u, v, overlay, light);
-                vertex(matrix4f, vertexConsumer, nextOuterRadiusX, nextOuterRadiusY, z, 0, 0, 1, u + uwidth, v, overlay, light);
-                vertex(matrix4f, vertexConsumer, nextInnerRadiusX, nextInnerRadiusY, z, 0, 0, 1, u + uwidth, v + vheight, overlay, light);
+                vertex(matrix4f, vertexConsumer, nextOuterRadiusX, nextOuterRadiusY, z, 0, 0, 1, u + uWidth, v, overlay, light);
+                vertex(matrix4f, vertexConsumer, nextInnerRadiusX, nextInnerRadiusY, z, 0, 0, 1, u + uWidth, v + vHeight, overlay, light);
             }
         }
     }
@@ -312,16 +312,11 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
         float nextOuterZ = outerBandZs[(i+1) % outerBandZs.length];
         float nextInnerZ = innerBandZs[(i+1) % innerBandZs.length];
 
-        float u = outerX, v = outerY;
-        float u1 = nextOuterX, v1 = nextOuterY;
-        float u2 = nextInnerX, v2 = nextInnerY;
-        float u3 = innerX, v3 = innerY;
-
         // Inner triangle.
-        vertex(matrix, vertexConsumer, outerX, outerY, outerZ, 0, 0, 0, u, v, overlay, light);
-        vertex(matrix, vertexConsumer, nextOuterX, nextOuterY, nextOuterZ, 0, 0, 0, u1, v1, overlay, light);
-        vertex(matrix, vertexConsumer, nextInnerX, nextInnerY, nextInnerZ, 0, 0, 0, u2, v2, overlay, light);
-        vertex(matrix, vertexConsumer, innerX, innerY, innerZ, 0, 0, 0, u3, v3, overlay, light);
+        vertex(matrix, vertexConsumer, outerX, outerY, outerZ,               0, 0, 0,   outerX, outerY,         overlay, light);
+        vertex(matrix, vertexConsumer, nextOuterX, nextOuterY, nextOuterZ,   0, 0, 0,   nextOuterX, nextOuterY, overlay, light);
+        vertex(matrix, vertexConsumer, nextInnerX, nextInnerY, nextInnerZ,   0, 0, 0,   nextInnerX, nextInnerY, overlay, light);
+        vertex(matrix, vertexConsumer, innerX, innerY, innerZ,               0, 0, 0,   innerX, innerY,         overlay, light);
 
     }
 

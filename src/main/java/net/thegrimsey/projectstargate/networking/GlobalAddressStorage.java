@@ -10,10 +10,10 @@ import java.util.HashSet;
 
 public class GlobalAddressStorage extends PersistentState {
     // Set containing all known StarGate addresses and the positions of all SGBaseBlocks with that address.
-    HashMap<Long, HashSet<BlockPos>> worldAddresses;
+    final HashMap<Long, HashSet<BlockPos>> worldAddresses;
 
     // All addresses which are currently connected. Only one gate from each address can be dialed at the time.
-    HashSet<Long> lockedAddresses;
+    final HashSet<Long> lockedAddresses;
 
     public GlobalAddressStorage() {
         worldAddresses = new HashMap<>();

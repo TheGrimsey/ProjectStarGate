@@ -40,8 +40,10 @@ import java.util.Objects;
 import java.util.Random;
 
 public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientSerializable, ExtendedScreenHandlerFactory {
-    static float rotationSpeedDegrees = 30.0f;
-    static double angleBetweenSymbols = 360.0 / AddressingUtil.GLYPH_COUNT;
+    static final float rotationSpeedDegrees = 30.0f;
+    static final float angleBetweenSymbols = 360.0f / AddressingUtil.GLYPH_COUNT;
+    static final float openingTransientIntensity = 1.3f;
+    static final float openingTransientRandomness = 0.25f;
 
     public long address = -1;
     StarGateState gateState = StarGateState.IDLE;
@@ -73,7 +75,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     @Environment(EnvType.CLIENT)
     int eventHorizonMovingPointsCount = 0; // Count not including outer layer.
     @Environment(EnvType.CLIENT)
-    static Random random = new Random(); // For event horizon.
+    static final Random random = new Random(); // For event horizon.
 
     public SGBaseBlockEntity(BlockPos pos, BlockState state) {
         super(ProjectSGBlocks.SG_BASE_BLOCKENTITY, pos, state);
@@ -163,8 +165,8 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
         StarGateState state = StarGateState.fromID(tag.getByte("state"));
         if (state != gateState)
         {
-            //if(state == StarGateState.CONNECTED)
-            //    applyOpeningPulse();
+            if(state == StarGateState.CONNECTED)
+                applyOpeningPulse();
 
             changeState(state);
         }
@@ -309,7 +311,7 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
         // Original mod lays out data as such:
         // [32][5] where the outer array is index around and inner is band.
-        // Meanwhile we do the reverse.
+        // Meanwhile, we do the reverse.
         // [5][32/1]
         // We also appear to be sorting our bands in the reverse. Where we have 0 as the outermost they have 0 as the innermost.
 
@@ -409,12 +411,10 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
     @Environment(EnvType.CLIENT)
     void applyOpeningPulse()
     {
-        for (int band = 1; band < eventHorizonZ.length; band++) {
-            for (int i = 0; i < eventHorizonZ[band].length; i++) {
-                float z = (float)(band+1) / (eventHorizonZ.length) * 5.0f;
-                eventHorizonZ[band][i] = (float) (z + (random.nextGaussian() * 0.2f));
-            }
+        for (int i = 0; i < eventHorizonZVelocity[eventHorizonZVelocity.length-2].length; i++) {
+            eventHorizonZVelocity[eventHorizonZVelocity.length-2][i] = openingTransientIntensity + openingTransientRandomness * (float)random.nextGaussian() * 0.2f;
         }
+        eventHorizonZVelocity[eventHorizonZVelocity.length-1][0] = openingTransientIntensity;
     }
 
     Box getTeleportBounds() {
@@ -592,7 +592,6 @@ public class SGBaseBlockEntity extends BlockEntity implements BlockEntityClientS
 
     @Override
     public void writeScreenOpeningData(ServerPlayerEntity player, PacketByteBuf buf) {
-        buf.writeBlockPos(getPos());
         buf.writeLong(address);
     }
 

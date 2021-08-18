@@ -23,7 +23,7 @@ public class SGRingBlock extends AbstractStarGateBlock {
         * The portal can then also be rotated in one of two directions.
         * We need to figure out which one we are at.
         *
-        * Could likely be made faster but we only do the checks when someone places a block so...
+        * Could likely be made faster, but we only do the checks when someone places a block so...
          */
 
         for(int i = 0; i < 8; i++)

@@ -61,7 +61,7 @@ public class DHDBlock extends Block implements BlockEntityProvider {
                         if (sgBase.notMerged())
                             continue;
 
-                        //If we have a valid DHD entity then save our stargatepos as this one.
+                        //If we have a valid DHD entity then save our stargate position as this one.
                         if (world.getBlockEntity(pos) instanceof DHDBlockEntity dhdBlockEntity)
                             dhdBlockEntity.setStargatePos(bPos.toImmutable());
 

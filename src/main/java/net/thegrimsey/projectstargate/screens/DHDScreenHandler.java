@@ -2,7 +2,6 @@ package net.thegrimsey.projectstargate.screens;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.network.PacketByteBuf;
@@ -21,9 +20,10 @@ import net.thegrimsey.projectstargate.utils.AddressingUtil;
 import java.util.Arrays;
 
 public class DHDScreenHandler extends ScreenHandler {
-    ScreenHandlerContext context;
-    BlockPos dhdPos;
+    final ScreenHandlerContext context;
 
+    @Environment(EnvType.CLIENT)
+    BlockPos dhdPos;
     @Environment(EnvType.CLIENT)
     byte dimension = -1;
     @Environment(EnvType.CLIENT)
@@ -51,9 +51,8 @@ public class DHDScreenHandler extends ScreenHandler {
 
     public DHDScreenHandler(int syncId, PlayerInventory playerInventory, DHDBlockEntity sourceDHD) {
         super(ProjectStarGate.DHD_SCREENHANDLER, syncId);
-        this.dhdPos = sourceDHD.getPos();
 
-        context = ScreenHandlerContext.create(playerInventory.player.world, dhdPos);
+        context = ScreenHandlerContext.create(playerInventory.player.world, sourceDHD.getPos());
     }
 
     @Override
@@ -61,6 +60,7 @@ public class DHDScreenHandler extends ScreenHandler {
         return canUse(context, player, ProjectSGBlocks.DHD_BLOCK) && getDHD().getGate() != null;
     }
 
+    @Environment(EnvType.CLIENT)
     public void writeGlyph(byte glyph)
     {
         if(glyph < 0 || glyph > AddressingUtil.GLYPH_COUNT || writeHead >= getDHD().getGate().getChevronCount())
@@ -73,6 +73,7 @@ public class DHDScreenHandler extends ScreenHandler {
         updateText();
     }
 
+    @Environment(EnvType.CLIENT)
     public void eraseGlyph() {
         if(writeHead > 0 && writeHead <= writtenAddress.length)
         {
@@ -84,13 +85,16 @@ public class DHDScreenHandler extends ScreenHandler {
         }
     }
 
+    @Environment(EnvType.CLIENT)
     void playButtonClickSound() {
         player.world.playSound(player, dhdPos, ProjectSGSounds.DHD_BUTTON_CLICK_EVENT, SoundCategory.BLOCKS, 1.0f, 1.0f);
     }
+    @Environment(EnvType.CLIENT)
     void playDialSound() {
         player.world.playSound(player, dhdPos, ProjectSGSounds.DHD_DIAL_EVENT, SoundCategory.BLOCKS, 1.0f, 1.0f);
     }
 
+    @Environment(EnvType.CLIENT)
     public void dialGate()
     {
         playDialSound();
@@ -110,6 +114,7 @@ public class DHDScreenHandler extends ScreenHandler {
         ProjectSGNetworking.sendDialDHDPacket(dhdPos, AddressingUtil.ConvertAddressBytesToLong(writtenAddress));
     }
 
+    @Environment(EnvType.CLIENT)
     public DHDBlockEntity getDHD()
     {
         return context.get((world, blockPos) -> {
@@ -120,6 +125,7 @@ public class DHDScreenHandler extends ScreenHandler {
         }, null);
     }
 
+    @Environment(EnvType.CLIENT)
     void updateText()
     {
         StringBuilder textString = new StringBuilder(AddressingUtil.ADDRESS_LENGTH);

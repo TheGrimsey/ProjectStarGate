@@ -6,10 +6,10 @@ import net.minecraft.util.registry.Registry;
 
 public class ProjectSGSounds {
     static final Identifier DHD_BUTTON_CLICK_ID = new Identifier(ProjectStarGate.MODID, "dhd_button_click");
-    public static SoundEvent DHD_BUTTON_CLICK_EVENT = new SoundEvent(DHD_BUTTON_CLICK_ID);
+    public static final SoundEvent DHD_BUTTON_CLICK_EVENT = new SoundEvent(DHD_BUTTON_CLICK_ID);
 
     static final Identifier DHD_DIAL_ID = new Identifier(ProjectStarGate.MODID, "dhd_dial");
-    public static SoundEvent DHD_DIAL_EVENT = new SoundEvent(DHD_DIAL_ID);
+    public static final SoundEvent DHD_DIAL_EVENT = new SoundEvent(DHD_DIAL_ID);
 
     public static void registerSounds()
     {

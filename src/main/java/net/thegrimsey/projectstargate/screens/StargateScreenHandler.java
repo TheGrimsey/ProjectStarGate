@@ -6,12 +6,14 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.screen.ScreenHandler;
+import net.minecraft.screen.ScreenHandlerContext;
 import net.minecraft.util.math.BlockPos;
+import net.thegrimsey.projectstargate.ProjectSGBlocks;
 import net.thegrimsey.projectstargate.ProjectStarGate;
 import net.thegrimsey.projectstargate.utils.AddressingUtil;
 
 public class StargateScreenHandler extends ScreenHandler {
-    private BlockPos pos = null;
+    private final ScreenHandlerContext context;
 
     @Environment(EnvType.CLIENT)
     private String address;
@@ -19,13 +21,14 @@ public class StargateScreenHandler extends ScreenHandler {
     public StargateScreenHandler(int syncId, PlayerInventory playerInventory, PacketByteBuf buf) {
         super(ProjectStarGate.STARGATE_SCREENHANDLER, syncId);
 
-        pos = buf.readBlockPos();
+        context = null;
         address = AddressingUtil.ConvertLongToString(buf.readLong());
     }
 
     public StargateScreenHandler(int syncId, PlayerInventory playerInventory, BlockPos pos) {
         super(ProjectStarGate.STARGATE_SCREENHANDLER, syncId);
-        this.pos = pos;
+
+        context = ScreenHandlerContext.create(playerInventory.player.world, pos);
     }
 
     @Environment(EnvType.CLIENT)
@@ -35,6 +38,6 @@ public class StargateScreenHandler extends ScreenHandler {
 
     @Override
     public boolean canUse(PlayerEntity player) {
-        return true;
+        return canUse(context, player, ProjectSGBlocks.SG_BASE_BLOCK);
     }
 }

@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class DimensionGlyphStorage extends PersistentState {
-    HashMap<String, Byte> dimensionGlyphs;
+    final HashMap<String, Byte> dimensionGlyphs;
 
     public DimensionGlyphStorage()
     {

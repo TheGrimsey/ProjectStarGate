@@ -16,10 +16,12 @@ import org.lwjgl.opengl.GL11;
 import java.awt.*;
 
 public class DHDScreen extends HandledScreen<DHDScreenHandler> {
+    // Textures
     private static final Identifier DHD_TEXTURE = new Identifier(ProjectStarGate.MODID, "textures/gui/dhd_gui.png");
     private static final Identifier CENTER_BUTTON_TEXTURE = new Identifier(ProjectStarGate.MODID, "textures/gui/dhd_centre.png");
     private static final Identifier SYMBOL_TEXTURE = new Identifier(ProjectStarGate.MODID, "textures/gui/symbols.png");
 
+    // Size of a symbol in the texture.
     final static int SYMBOL_TEXTURE_SIZE = 48;
 
     int buttonX, buttonY, buttonWidth, buttonHeight;
@@ -50,12 +52,12 @@ public class DHDScreen extends HandledScreen<DHDScreenHandler> {
         if(dhdBlockEntity.hasGate() && !dhdBlockEntity.getGate().notMerged())
         {
             if(isActive)
-                RenderSystem.setShaderColor(1.0f, 0.5f, 0.0f, 1.0f);
+                RenderSystem.setShaderColor(1.0f, 0.5f, 0.0f, 1.0f); // Gate is active.
             else
-                RenderSystem.setShaderColor(0.5f, 0.25f, 0.0f, 1.0f);
+                RenderSystem.setShaderColor(0.5f, 0.25f, 0.0f, 1.0f); // Gate is idle.
         }
         else
-            RenderSystem.setShaderColor(0.2f, 0.2f, 0.2f, 1.0f);
+            RenderSystem.setShaderColor(0.2f, 0.2f, 0.2f, 1.0f); // No gate color
 
         drawTexture(matrices, buttonX, buttonY, buttonWidth, buttonHeight, 64, 0, 64, 64, 128, 64);
 
@@ -74,6 +76,7 @@ public class DHDScreen extends HandledScreen<DHDScreenHandler> {
     protected void drawForeground(MatrixStack matrices, int mouseX, int mouseY) {
         float symbolScale = 0.5f;
 
+        // Draw written address.
         textRenderer.draw(matrices, handler.text, (width - textRenderer.getWidth(handler.text))/2f, (height + SYMBOL_TEXTURE_SIZE*symbolScale)/2 - textRenderer.fontHeight, Color.WHITE.getRGB());
 
         // Draw written glyphs.
@@ -118,22 +121,12 @@ public class DHDScreen extends HandledScreen<DHDScreenHandler> {
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         switch (keyCode) {
-            case GLFW.GLFW_KEY_BACKSPACE:
-                handler.eraseGlyph();
-                return true;
-
-            case GLFW.GLFW_KEY_ENTER:
-            case GLFW.GLFW_KEY_KP_ENTER:
-                handler.dialGate();
-                return true;
-
-            case GLFW.GLFW_KEY_ESCAPE:
-                onClose();
-                return true;
-
-            default:
-                handler.writeGlyph((byte) AddressingUtil.GLYPHS.indexOf(keyCode));
-                return true;
+            case GLFW.GLFW_KEY_BACKSPACE -> handler.eraseGlyph();
+            case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> handler.dialGate();
+            case GLFW.GLFW_KEY_ESCAPE -> onClose();
+            default -> handler.writeGlyph((byte) AddressingUtil.GLYPHS.indexOf(keyCode));
         }
+
+        return true;
     }
 }
