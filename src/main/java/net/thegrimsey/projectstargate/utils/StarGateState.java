@@ -1,6 +1,7 @@
 package net.thegrimsey.projectstargate.utils;
 
 public enum StarGateState {
+    NONE,
     IDLE,
     DIALING,
     CONNECTED;

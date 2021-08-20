@@ -30,35 +30,35 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
         return RenderLayerMultiPhaseAccessor.of("horizon_layer", VertexFormats.POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL, VertexFormat.DrawMode.QUADS, 256, true, false, multiPhaseParameters);
     }).apply(TEXTURE_HORIZON);
 
-    public final static int ringSegmentCount = 32;
-    final static float ringInnerRadius = 2.0f;
-    final static float ringMidRadius = 2.25f;
-    final static float ringOuterRadius = 2.5f;
-    final static float ringDepth = 0.5f;
-    final static double ringOverlap = 1 / 64.0d;
-    final static double ringZOffset = 0.0001d;
+    public final static int RING_SEGMENT_COUNT = 32;
+    final static float RING_INNER_RADIUS = 2.0f;
+    final static float RING_MID_RADIUS = 2.25f;
+    final static float RING_OUTER_RADIUS = 2.5f;
+    final static float RING_DEPTH = 0.5f;
+    final static double RING_OVERLAP = 1 / 64.0d;
+    final static double RING_Z_OFFSET = 0.0001d;
 
-    final static float chevronInnerRadius = 2.25f;
-    final static float chevronOuterRadius = ringOuterRadius + 1 / 16.0f;
-    final static float chevronWidth = (chevronOuterRadius - chevronInnerRadius) * 1.5f;
-    final static float chevronDepth = 0.125f;
-    final static float chevronBorderWidth = chevronWidth / 6f;
-    final static float chevronMotionDistance = 1 / 8.0f;
-    final static double numIrisBlades = 12;
+    final static float CHEVRON_INNER_RADIUS = 2.25f;
+    final static float CHEVRON_OUTER_RADIUS = RING_OUTER_RADIUS + 1 / 16.0f;
+    final static float CHEVRON_WIDTH = (CHEVRON_OUTER_RADIUS - CHEVRON_INNER_RADIUS) * 1.5f;
+    final static float CHEVRON_DEPTH = 0.125f;
+    final static float CHEVRON_BORDER_WIDTH = CHEVRON_WIDTH / 6f;
+    final static float CHEVRON_MOTION_DISTANCE = 1 / 8.0f;
+    final static double NUM_IRIS_BLADES = 12;
 
-    static final float[] s = new float[ringSegmentCount + 1];
-    static final float[] c = new float[ringSegmentCount + 1];
+    static final float[] S = new float[RING_SEGMENT_COUNT + 1];
+    static final float[] C = new float[RING_SEGMENT_COUNT + 1];
 
     static {
-        for (int i = 0; i <= ringSegmentCount; i++) {
-            double a = 2 * Math.PI * i / ringSegmentCount;
-            s[i] = (float) Math.sin(a);
-            c[i] = (float) Math.cos(a);
+        for (int i = 0; i <= RING_SEGMENT_COUNT; i++) {
+            double a = 2 * Math.PI * i / RING_SEGMENT_COUNT;
+            S[i] = (float) Math.sin(a);
+            C[i] = (float) Math.cos(a);
         }
     }
 
-    float TEXTURE_WIDTH = 1024;
-    float TEXTURE_HEIGHT = 64;
+    float textureWidth = 1024;
+    float textureHeight = 64;
 
     public StarGateRenderer(BlockEntityRendererFactory.Context context) {
     }
@@ -92,27 +92,27 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
 
     void renderStarGate(SGBaseBlockEntity entity, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int overlay, int light) {
         // Render outer ring.
-        TEXTURE_WIDTH = 1024;
-        TEXTURE_HEIGHT = 64;
+        textureWidth = 1024;
+        textureHeight = 64;
         VertexConsumer ringVertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(TEXTURE));
-        renderRing((float) (ringMidRadius - ringOverlap), ringOuterRadius, ringZOffset, matrices.peek().getModel(), ringVertexConsumer, overlay, light, false);
+        renderRing((float) (RING_MID_RADIUS - RING_OVERLAP), RING_OUTER_RADIUS, RING_Z_OFFSET, matrices.peek().getModel(), ringVertexConsumer, overlay, light, false);
 
         // Render inner ring.
         matrices.push(); // It gets its own matrix, so we can rotate it.
         matrices.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(entity.getInterpolatedRingRotation(tickDelta)));
-        renderRing(ringInnerRadius, ringMidRadius, 0, matrices.peek().getModel(), ringVertexConsumer, overlay, light, true);
+        renderRing(RING_INNER_RADIUS, RING_MID_RADIUS, 0, matrices.peek().getModel(), ringVertexConsumer, overlay, light, true);
         matrices.pop();
 
         // Render chevrons.
-        TEXTURE_WIDTH = 64;
-        TEXTURE_HEIGHT = 64;
+        textureWidth = 64;
+        textureHeight = 64;
         VertexConsumer chevronVertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(TEXTURE_CHEVRON));
         renderChevrons(entity, matrices, chevronVertexConsumer, overlay, light);
 
         if(entity.isConnected())
         {
-            TEXTURE_WIDTH = 1;
-            TEXTURE_HEIGHT = 1;
+            textureWidth = 1;
+            textureHeight = 1;
             VertexConsumer horizonVertexConsumer = vertexConsumers.getBuffer(HORIZON_LAYER);
             renderEventHorizon(entity, matrices, horizonVertexConsumer, overlay);
         }
@@ -132,19 +132,19 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
     }
 
     void renderRing(float innerRadius, float outerRadius, double dz, Matrix4f matrix4f, VertexConsumer vertexConsumer, int overlay, int light, boolean inner) {
-        float z = (float) (ringDepth / 2 + dz);
+        float z = (float) (RING_DEPTH / 2 + dz);
         float inverse = (inner ? -1 : 1);
 
-        for (int i = 0; i < ringSegmentCount; i++) {
-            float outerRadiusX = outerRadius * c[i], nextOuterRadiusX = outerRadius * c[i + 1];
-            float outerRadiusY = outerRadius * s[i], nextOuterRadiusY = outerRadius * s[i + 1];
-            float innerRadiusX = innerRadius * c[i], nextInnerRadiusX = innerRadius * c[i + 1];
-            float innerRadiusY = innerRadius * s[i], nextInnerRadiusY = innerRadius * s[i + 1];
+        for (int i = 0; i < RING_SEGMENT_COUNT; i++) {
+            float outerRadiusX = outerRadius * C[i], nextOuterRadiusX = outerRadius * C[i + 1];
+            float outerRadiusY = outerRadius * S[i], nextOuterRadiusY = outerRadius * S[i + 1];
+            float innerRadiusX = innerRadius * C[i], nextInnerRadiusX = innerRadius * C[i + 1];
+            float innerRadiusY = innerRadius * S[i], nextInnerRadiusY = innerRadius * S[i + 1];
 
             // Draw side.
             {
-                float xNormal = c[i] * inverse;
-                float yNormal = s[i] * inverse;
+                float xNormal = C[i] * inverse;
+                float yNormal = S[i] * inverse;
 
                 float x1 = inner ? innerRadiusX : outerRadiusX, y1 = inner ? innerRadiusY : outerRadiusY;
                 float x2 = inner ? nextInnerRadiusX : nextOuterRadiusX, y2 = inner ? nextInnerRadiusY : nextOuterRadiusY;
@@ -181,19 +181,19 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
          *   Positive Z goes towards the front.
          */
 
-        float w = chevronBorderWidth;
+        float w = CHEVRON_BORDER_WIDTH;
         float w2 = w * 1.25f;
 
-        float xBottom = chevronInnerRadius, yInner = chevronWidth / 4f;
-        float xTop = chevronOuterRadius, yOuter = chevronWidth / 2f;
+        float xBottom = CHEVRON_INNER_RADIUS, yInner = CHEVRON_WIDTH / 4f;
+        float xTop = CHEVRON_OUTER_RADIUS, yOuter = CHEVRON_WIDTH / 2f;
 
-        float zFlat = ringDepth / 2f;
-        float zOut = zFlat + chevronDepth;
+        float zFlat = RING_DEPTH / 2f;
+        float zOut = zFlat + CHEVRON_DEPTH;
 
         float engagedMultiplier = engaged ? 1.0f : 0.2f;
 
         if (engaged)
-            matrices.translate(-chevronMotionDistance, 0, 0);
+            matrices.translate(-CHEVRON_MOTION_DISTANCE, 0, 0);
         Matrix4f matrix4f = matrices.peek().getModel();
 
         // Left-Forward Face
@@ -277,9 +277,9 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
         int bands = entity.eventHorizonZ.length-1;
         for(int band = 0; band < bands; band++)
         {
-            float outerRadius = ringInnerRadius * ((float)(bands - band) / bands);
-            float innerRadius = ringInnerRadius * ((float)(bands - 1 - band) / bands);
-            for(int i = 0; i < ringSegmentCount; i++)
+            float outerRadius = RING_INNER_RADIUS * ((float)(bands - band) / bands);
+            float innerRadius = RING_INNER_RADIUS * ((float)(bands - 1 - band) / bands);
+            for(int i = 0; i < RING_SEGMENT_COUNT; i++)
             {
                 renderEventHorizonPiece(outerRadius, innerRadius, vertexConsumer, overlay, light, matrix, i, entity.eventHorizonZ[band], entity.eventHorizonZ[band+1]);
             }
@@ -294,18 +294,18 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
         *
          */
 
-        float outerX = outerRadius * c[i];
-        float outerY = outerRadius * s[i];
+        float outerX = outerRadius * C[i];
+        float outerY = outerRadius * S[i];
 
-        float nextOuterX = outerRadius * c[(i + 1) % ringSegmentCount];
-        float nextOuterY = outerRadius * s[(i + 1) % ringSegmentCount];
+        float nextOuterX = outerRadius * C[(i + 1) % RING_SEGMENT_COUNT];
+        float nextOuterY = outerRadius * S[(i + 1) % RING_SEGMENT_COUNT];
 
-        float innerX = innerRadius * c[i];
-        float innerY = innerRadius * s[i];
+        float innerX = innerRadius * C[i];
+        float innerY = innerRadius * S[i];
 
         // coordinate for < triangle's top point.
-        float nextInnerX = innerRadius * c[(i + 1) % ringSegmentCount];
-        float nextInnerY = innerRadius * s[(i + 1) % ringSegmentCount];
+        float nextInnerX = innerRadius * C[(i + 1) % RING_SEGMENT_COUNT];
+        float nextInnerY = innerRadius * S[(i + 1) % RING_SEGMENT_COUNT];
 
         float outerZ = outerBandZs[i];
         float innerZ = innerBandZs[i % innerBandZs.length];
@@ -325,6 +325,6 @@ public class StarGateRenderer implements BlockEntityRenderer<SGBaseBlockEntity> 
     }
 
     void vertex(Matrix4f matrix4f, VertexConsumer vertexConsumer, float x, float y, float z, float nX, float nY, float nZ, float u, float v, int overlay, int light, float r, float g, float b) {
-        vertexConsumer.vertex(matrix4f, x, y, z).color(r, g, b, 1.0f).texture(u / TEXTURE_WIDTH, v / TEXTURE_HEIGHT).overlay(overlay).light(light).normal(nX, nY, nZ).next();
+        vertexConsumer.vertex(matrix4f, x, y, z).color(r, g, b, 1.0f).texture(u / textureWidth, v / textureHeight).overlay(overlay).light(light).normal(nX, nY, nZ).next();
     }
 }
